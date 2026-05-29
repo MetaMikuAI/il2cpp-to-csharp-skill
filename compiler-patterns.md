@@ -55,18 +55,16 @@ Only after the information is closed should short single-use helpers be inlined 
 ### 3.1 Preferred Search Order
 
 1. Inspect the type-initialization region in the outer method. It often lists `Method_Foo___c__Bar_b__N_M__` entries used by the method.
-2. Look up the compiler-generated method in the dnSpy-exported DummyDll C# stubs or `script.json`; use its RVA / VA comment when available.
-3. Try `get_function_by_address(VA)` or `decompile_function(VA)` for that helper.
-4. If no VA is available, try `get_function_by_name` for an already visible IDA name.
-5. If exact name lookup fails, use `list_globals_filter("Bar_b__N_M")` to search `Method$...` globals.
-6. Use `get_xrefs_to` on the found `Method$...` global. The xref owner is often the outer method constructing the delegate, not the helper itself.
-7. If these steps do not reveal the helper function VA, ask the user for the helper VA or full pseudo-C.
+2. Try `get_function_by_name` for already visible MethodInfo names.
+3. If exact name lookup fails, use `list_globals_filter("Bar_b__N_M")` to search `Method$...` globals.
+4. Use `get_xrefs_to` on the found `Method$...` global. The xref owner is often the outer method constructing the delegate.
+5. If `get_callers` returns a call-site address, pass that address to `decompile_function`; IDA usually moves back to the real function start.
 
-Do not use `list_functions`. Do not call `get_callers` on `sub_xxx` runtime helpers. Do not read raw MethodInfo / `Method$` memory to hunt for implementation pointers.
+Do not use `list_functions`. Do not call `get_callers` on `sub_xxx` runtime helpers.
 
 ### 3.2 Name Conversion Rules
 
-`get_function_by_name` and `Method$...` rewrite characters differently. See `ida-usage.md`. Treat name conversion as a heuristic, not the primary source of truth.
+`get_function_by_name` and `Method$...` rewrite characters differently. See `ida-usage.md`.
 Common mappings:
 
 | `Method$` Global | IDA Function Name |
@@ -75,9 +73,7 @@ Common mappings:
 | `Method$Foo.__c__DisplayClassX_Y._Bar_b__N()` | `Foo.__c__DisplayClassX_Y$$_Bar_b__N` |
 | `Method$Foo._Bar_g__Name_N_M()` | `Foo$$_Bar_g__Name_N_M` |
 
-If the inferred name fails, use shorter search fragments such as `Bar_b__N_M`, `DisplayClassX_Y`, or the local function name. Then prefer DummyDll / `script.json` VA lookup over additional guessed name variants.
-
-`Method$...` is only a naming and xref anchor. It is not a promise that the implementation pointer can be recovered by reading the MethodInfo object's raw bytes.
+If the inferred name fails, use shorter search fragments such as `Bar_b__N_M`, `DisplayClassX_Y`, or the local function name.
 
 ---
 
@@ -399,7 +395,7 @@ When a method contains many `Method_...b__...`, `Method_...g__...`, `DisplayClas
 4. Return to the outer method and keep only the control-flow skeleton and higher-order calls.
 5. Inline helpers or keep them as local functions as appropriate.
 
-Do not try to produce final C# on the first pass. Large methods need a helper map first. If a required predicate / selector body cannot be located, ask the user for the missing helper instead of marking it as "unconfirmed" and continuing with guessed C#.
+Do not try to produce final C# on the first pass. Large methods need a helper map first.
 
 ---
 
@@ -645,7 +641,7 @@ Restoration:
 await ExecuteTimed(() => LoadDependenciesAsync(), label);
 ```
 
-Only do this after confirming the delegate target. If the target is `__c.__9__N_M`, decompile `b__N_M`; if the target is an instance MethodInfo, restore as a method group or lambda only after the target method is identified from pseudo-C, DummyDll / `script.json`, or a real IDA function. Do not guess the loading step from `Func<UniTask>` or MethodInfo naming alone.
+Only do this after confirming the delegate target. If the target is `__c.__9__N_M`, decompile `b__N_M`; if the target is an instance MethodInfo, restore as a method group or lambda based on target plus MethodInfo. Do not guess the loading step from `Func<UniTask>`.
 
 If IDA output for a large `MoveNext` is truncated, ask the user to provide complete pseudo-C. `get_callees(MoveNext)` may help identify key await targets, helpers, and Unity APIs, but do not use a call list or assembly to fill missing source unless the user explicitly provides assembly and asks for assembly-based recovery.
 
@@ -739,8 +735,7 @@ Do not fill missing state branches from experience just because the function "lo
 | Forcing a LINQ-created sequence plus `foreach` into one chain | Merge only when a terminal operation is explicit |
 | Treating `DisplayClass` as a business class | It is a closure object; fields are captures |
 | Rewriting `g__Name` as an anonymous lambda | Prefer local function when a name exists |
-| Giving up when `get_function_by_name` fails | Check DummyDll / `script.json` for the helper RVA, then use `Method$` search / xrefs as anchors |
-| Reading raw MethodInfo bytes to find a helper pointer | Never do this; ask for the helper VA / pseudo-C if metadata and xrefs do not expose it |
+| Giving up when `get_function_by_name` fails | Use `list_globals_filter` on a `Method$` fragment |
 | Rewriting shared generic instantiations as `object` | Preserve source-level generic type parameters and close them at call sites |
 | Inventing generic constraints | Use only constraints from stubs, metadata, or operations visible in pseudo-C |
 | Treating an async wrapper as method body | Wrapper only initializes the state machine; real logic is in `MoveNext` |

@@ -1,5 +1,5 @@
 ---
-name: il2cpp-to-csharp-skill
+name: il2cpp-to-csharp
 description: Analyze Unity IL2CPP game binaries through IDA Pro MCP and reconstruct plausible C# source from user-provided VAs or function names. Use this for IL2CPP Unity reverse engineering workflows that require string literal resolution, vtable mapping, switch/enum cascade recovery, lambda/closure reconstruction, LINQ recovery, coroutine/async state machines, and IL2CPP runtime helper cleanup. Do not use it for generic decompilation, non-IL2CPP .NET binaries, or exploit development.
 ---
 
@@ -16,8 +16,6 @@ Use IDA Pro MCP to analyze Unity IL2CPP binaries from user-provided VAs or funct
 If `decompile_function` output is truncated, missing its end, or clearly not the full function body, pause source restoration and ask the user to manually decompile the function in IDA Pro and paste the complete pseudo-C. Do not fill truncated regions from context.
 
 Unless the user explicitly provides assembly and asks for assembly-based recovery, do not use assembly as the main reference for normal method restoration. Assembly may be used only for narrow local checks, such as trivial ICF bodies, field-offset noise, or a single object offset that pseudo-C cannot confirm directly. Confirm field names, signatures, enum values, and `[FieldOffset]` with dnSpy / DummyDll stubs, `*_Fields` structures, and `stringliteral.json`.
-
-`Method$...` globals and MethodInfo entries are naming / xref anchors, not reliable sources for implementation pointers. Do not parse raw MethodInfo memory with `read_memory_bytes` or `data_read_*` to locate a lambda, local function, predicate, or `MoveNext` body. Resolve helpers through explicit VAs, IDA function names, DummyDll / `script.json` RVA comments, `Method$` names, xrefs, and IDA data comments. If the helper body still cannot be found and its semantics matter, ask the user for the helper VA or full pseudo-C instead of guessing or producing an unverified predicate.
 
 ## Preparation
 
@@ -60,11 +58,11 @@ Recommend that the user open Il2CppDumper's `DummyDll/Assembly-CSharp.dll` in dn
 
 - class, namespace, and method signatures
 - field names and `[FieldOffset(...)]`
-- method VA / RVA comments, including compiler-generated `b__`, `g__`, iterator, coroutine, and async helpers
+- method VA / RVA comments
 - enum definitions and explicit enum values
 - auto-properties, events, generic types, and inheritance
 
-When IDA naming or `Method$` lookup cannot expose a helper body, the dnSpy-exported stub project is the preferred fallback for the helper RVA / VA. If the user does not provide this project, restoration can continue with IDA and Il2CppDumper outputs, but note any uncertainty around fields, enums, signatures, or helper locations.
+If the user does not provide this project, restoration can continue with IDA and Il2CppDumper outputs, but note any uncertainty around fields, enums, or signatures.
 
 ## Basic Workflow
 
@@ -126,7 +124,6 @@ See [compiler-patterns.md](compiler-patterns.md). Core rules:
 - For generic methods, keep the source-level generic shape from stubs and infer closed type arguments from call sites. Do not rewrite shared IL2CPP generic implementations as `object`.
 - Recover LINQ chains by data flow: `Select` / `Where` / `Zip` produce sequences, while `ToArray` / `Sum` / `All` / `First` / `Aggregate` are materialization or terminal operations.
 - Every selector or predicate must be decompiled. Do not guess conditions from `Func<T, bool>` or variable names.
-- If a selector / predicate `Method$...` can be found but its function body cannot, look up the matching compiler-generated method in the dnSpy-exported `DummyDll/Assembly-CSharp.dll` stub project and use its RVA / VA comment. If that is unavailable, stop and ask for the helper VA or pseudo-C. Do not inspect raw MethodInfo memory to recover it.
 
 ## Large Methods and Compiler-Generated Helpers
 
@@ -168,7 +165,7 @@ Common folded bodies:
 
 - Use the wrapper's `jmp` target or `get_callees`.
 - Use `list_globals_filter` to search MethodInfo globals for compiler-generated helpers, such as `Type.__c`, `DisplayClass7_0`, or `OnPostEnterSceneAsync_b__7`. IDA data comments usually expose helper implementation VAs.
-- If `get_function_by_name` cannot find a helper, use `get_xrefs_to` on the corresponding `Method$...` global to confirm the owner or nearby references, then use IDA names / data comments to obtain the real VA. Do not parse the raw MethodInfo memory.
+- If `get_function_by_name` cannot find a helper, use `get_xrefs_to` on the corresponding `Method$...` global to confirm the owning `MoveNext`, then use nearby IDA data comments to obtain the real VA. Prefer this over `read_memory_bytes`.
 - For simple one- or two-yield coroutines, infer from state-machine fields.
 - For complex coroutines / async methods, first obtain the full `MoveNext` pseudo-C. If MCP output is truncated, ask the user to paste it.
 
@@ -195,6 +192,52 @@ If a getter resolves to a folded shared body, restore it as a standard auto-prop
 
 IDA pseudo-C expressions such as `BYTE4(Instance[40].monitor)`, `LOBYTE(instance[1].klass)`, or `*(_OWORD *)&instance[2].fields.X` are usually field-offset noise, not array access. When such expressions affect business logic, first use `scripts/field_offset.py` to compute object and Fields offsets. Use assembly only as a single-offset local check if needed, then confirm the real field name with `*_Fields` or `[FieldOffset]`. See [ida-quirks.md](ida-quirks.md).
 
+### Auto-Property Restoration Style
+
+When a getter or setter is ICF-folded (shared binary body, no real logic), use the semicolon-terminated auto-property syntax and preserve **all** metadata attributes on each accessor. Do **not** use a brace block with `return null;` or `default(...)` for these accessors.
+
+**ICF shared auto-property (getter and/or setter have no real logic):**
+
+```csharp
+public SomeType PropertyName
+{
+    [Token(Token = "0x6000001")]
+    [Address(RVA = "0x3F9450", Offset = "0x3F7E50", VA = "0x1803F9450")]
+    [CompilerGenerated]
+    get; // By <Model>
+    [Token(Token = "0x6000002")]
+    [Address(RVA = "0x3FC090", Offset = "0x3FAA90", VA = "0x1803FC090")]
+    [CompilerGenerated]
+    private set; // By <Model>
+}
+```
+
+**Auto-property with real logic in one or both accessors:**
+
+```csharp
+public SomeType PropertyName
+{
+    [Token(Token = "0x6000001")]
+    [Address(RVA = "0x636F60", Offset = "0x635960", VA = "0x180636F60")]
+    [CompilerGenerated]
+    get; // By <Model>
+    [Token(Token = "0x6000002")]
+    [Address(RVA = "0x6388D0", Offset = "0x6372D0", VA = "0x1806388D0")]
+    set
+    {
+        // By <Model>
+        _backingField = value;
+        SomeCallback?.Invoke(value);
+    }
+}
+```
+
+Key rules:
+
+- The model signature (`// By <Model>`) goes **after** the semicolon for `get;` / `set;`, and **inside** the brace block for accessors with logic.
+- `[CompilerGenerated]` is kept on every accessor that had it in the stub.
+- `private set;` / `protected set;` retains its access modifier as declared in the stub.
+
 Event add/remove pattern:
 
 ```c
@@ -220,6 +263,7 @@ This is the standard thread-safe lowering for `event +=` / `-=`. Restore it as a
 - **Do not** invent string literal contents.
 - **Do not** merge switch branches unless IDA shows a shared basic block.
 - **Do not** add error handling, comments, or features not present in IDA output.
+- **Do not** remove metadata attributes (`[Token]`, `[Address]`, `[FieldOffset]`, `[CompilerGenerated]`, `[CleanupIgnore]`, etc.) from any method, property, or accessor. If structural changes require removing an attribute from its original position (e.g., converting a brace block to a semicolon accessor), the attribute **must** be preserved in its new syntactically valid position. If this is impossible, preserve the attribute data as a comment above the affected element.
 
 IDA MCP tool rules, see [ida-usage.md](ida-usage.md):
 

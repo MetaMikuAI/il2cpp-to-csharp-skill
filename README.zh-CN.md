@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-一个用于从 Unity IL2CPP 二进制中恢复可读 C# 的 Codex skill，依赖 IDA Pro MCP、Il2CppDumper 输出、DummyDll stub 和 `stringliteral.json`。
+一个用于从 Unity IL2CPP 二进制中恢复可读 C# 的 skill，依赖 IDA Pro MCP、Il2CppDumper 输出、DummyDll stub 和 `stringliteral.json`。
 
 它不是一键反编译器，而是帮助 agent 分析用户给出的 VA 或函数名，并在恢复 C# 时保留字符串、switch 分支、lambda、LINQ、async/coroutine 状态机和 IL2CPP 特有噪音。
 
@@ -23,7 +23,7 @@
 
 ## 用法
 
-将本目录安装或复制为名为 `il2cpp-to-csharp-skill` 的 Codex skill，然后让 Codex 每次恢复一个函数：
+将本目录安装或复制为名为 `il2cpp-to-csharp-skill` 的 skill，然后让 agent 每次恢复一个函数：
 
 ```text
 使用 $il2cpp-to-csharp-skill 来恢复 0x180000000.

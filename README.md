@@ -2,7 +2,7 @@
 
 [中文](README.zh-CN.md)
 
-A Codex skill for restoring readable C# from Unity IL2CPP binaries with IDA Pro MCP, Il2CppDumper output, DummyDll stubs, and `stringliteral.json`.
+A skill for restoring readable C# from Unity IL2CPP binaries with IDA Pro MCP, Il2CppDumper output, DummyDll stubs, and `stringliteral.json`.
 
 This is not a one-click decompiler. It helps an agent analyze user-provided VAs or function names and reconstruct C# while preserving strings, switch branches, lambdas, LINQ, async/coroutine state machines, and IL2CPP-specific quirks.
 
@@ -23,7 +23,7 @@ Output quality depends on the AI model and the available context. Restored code 
 
 ## Usage
 
-Install or copy this folder as a Codex skill named `il2cpp-to-csharp-skill`, then ask Codex to restore one function at a time:
+Install or copy this folder as a skill named `il2cpp-to-csharp-skill`, then ask the agent to restore one function at a time:
 
 ```text
 Use $il2cpp-to-csharp-skill to restore 0x180000000.
