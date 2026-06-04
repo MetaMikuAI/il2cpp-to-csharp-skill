@@ -22,6 +22,10 @@ string value as a data-line comment:
 
 ## 2. Resolution Workflow
 
+Normal restoration does not use string search as discovery. Resolve only `StringLiteral_N`
+values already present in the function being restored. Broad string-content search is for
+reverse-engineering audits, such as finding API routes or protocol keys.
+
 ### 2.1 Preferred: Use the Lookup Script
 
 This skill includes `scripts/lookup_strings.py`. The user must provide the path to
@@ -56,7 +60,25 @@ Batch extraction from decompiler text:
 python scripts/lookup_strings.py --json-path /path/to/stringliteral.json --from-file decompile.txt
 ```
 
-### 2.2 Conservative: VA to RVA to JSON
+### 2.2 Audit-only: Search JSON, Then Return to IDA
+
+When an audit needs string clues, search the user-provided `stringliteral.json` directly
+for the string value. A common case is starting from a route fragment learned through
+traffic capture and locating the client logic that builds or calls that API. Do not use
+IDA string search.
+
+Workflow:
+
+1. Search `stringliteral.json` for the value or route fragment, such as a captured API path.
+2. Read the matched `address` field; it is an RVA.
+3. Convert to VA if needed: `VA = image_base + RVA`.
+4. In IDA, locate the exact `StringLiteral_N` global or use xrefs to that VA.
+5. Decompile only the referenced function(s).
+
+This is for audit/discovery work only. For routine source restoration, start from the user-provided
+VA/function and resolve only literals already visible in that decompile.
+
+### 2.3 Conservative: VA to RVA to JSON
 
 If you need to verify whether `StringLiteral_N` matches JSON order, or if label lookup fails,
 use the RVA path through IDA MCP:
@@ -68,7 +90,7 @@ use the RVA path through IDA MCP:
 | 3 | Calculate RVA | `RVA = VA - base`, such as `0x4222200` |
 | 4 | `scripts/lookup_strings.py --rva` | Query the user-provided JSON by `"address"` |
 
-### 2.3 `stringliteral.json` Format
+### 2.4 `stringliteral.json` Format
 
 Il2CppDumper's string table dump is usually a JSON array:
 
@@ -84,7 +106,7 @@ In common Il2CppDumper output, `StringLiteral_N` usually maps to the Nth JSON en
 using 1-based indexing, so the script supports direct `StringLiteral_N` lookup.
 If a project does not follow this convention, prefer RVA lookup.
 
-### 2.4 Example
+### 2.5 Example
 
 For `StringLiteral_8179`:
 
@@ -172,5 +194,7 @@ This format clearly tells the user what remains unresolved and provides the data
 
 - **Never** infer string contents from context, function names, or variable names.
 - Resolve every `StringLiteral_N` that appears in decompiler output independently.
+- Do not use string search during ordinary source restoration; it is an audit/discovery technique only.
+- For audit string search, search `stringliteral.json`, then use the matched RVA/address to return to IDA.
 - `StringLiteral_N` usually supports 1-based JSON order lookup. If the current dump does not, match by RVA.
 - Do not search strings directly in IDA. `list_strings` and `list_strings_filter` are prohibited; see [ida-usage.md](ida-usage.md).

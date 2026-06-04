@@ -77,7 +77,9 @@ Analyze one function at a time. If the user gives multiple VAs, process them one
 
 ## String Literal Resolution
 
-See [strings.md](strings.md). Prefer `scripts/lookup_strings.py` against the user-provided `stringliteral.json`. If needed, use `list_globals_filter` to locate a VA, compute RVA, and query by RVA. **Never invent string contents from context.**
+See [strings.md](strings.md). For normal C# source restoration, do not search for strings as an entry point; only resolve `StringLiteral_N` values that already appear in the current decompile. Prefer `scripts/lookup_strings.py` against the user-provided `stringliteral.json`. **Never invent string contents from context.**
+
+String content search is an audit-only technique. Common case: traffic capture reveals part of an API route, and you need to locate the client logic for that route. Search the user-provided `stringliteral.json` directly, then use the matched RVA/address to locate the exact IDA global/xref and continue with targeted decompile. Do not use IDA string search.
 
 ## Switch / Enum Cascade Recovery
 

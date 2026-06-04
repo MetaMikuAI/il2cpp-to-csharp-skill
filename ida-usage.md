@@ -15,7 +15,7 @@ The following tools must not be used in normal work. Violating these rules can o
 | Prohibited Tool | Reason |
 |---|---|
 | `list_strings` | Huge output; IL2CPP binaries often contain tens of thousands of strings |
-| `list_strings_filter` | Same traversal cost as `list_strings`; can time out on large games. Exception: user explicitly accepts a potentially long wait |
+| `list_strings_filter` | Same traversal cost as `list_strings`; can time out on large games. Use `stringliteral.json` instead |
 | `list_functions` | Filtering is ignored in this MCP build; it starts from address 0 and can overflow context |
 | `list_globals` | Huge output with no filter mechanism |
 
@@ -23,7 +23,7 @@ The following tools must not be used in normal work. Violating these rules can o
 
 - Need a global variable: use `list_globals_filter` with a partial name of at least 4 characters.
 - Need a function: use `get_function_by_address` with an exact VA or `get_function_by_name` with an exact name. If exact name lookup fails, search `Method$...` globals with `list_globals_filter` using a unique function-name fragment.
-- Need a string: see [strings.md](strings.md). Use `list_strings_filter` only if the user explicitly accepts the likely long wait.
+- Need a string: see [strings.md](strings.md). In normal restoration, resolve only `StringLiteral_N` values already visible in the decompile. In audit/discovery work, such as locating logic from an API route seen in traffic capture, search the user-provided `stringliteral.json`, then use the matched RVA/address for targeted IDA xrefs/decompile.
 
 ### 1.2 `get_callers` on `sub_xxx` Functions
 
@@ -106,7 +106,7 @@ For compiler-generated helper functions in coroutine / async state machines, suc
 
 ### 3.3 String Resolution
 
-**Never query string contents directly through IDA bulk string tools.** See [strings.md](strings.md).
+**Never query string contents directly through IDA bulk string tools.** Normal source restoration should not search strings as an entry point. For audit-only discovery, search `stringliteral.json` and use the matched RVA/address to return to IDA. See [strings.md](strings.md).
 
 ### 3.4 Special Characters and IDA Naming
 
@@ -202,7 +202,8 @@ Handling:
 |---|---|---|
 | Find function | `list_functions` | `get_function_by_address(VA)` or `list_globals_filter("fragment")` |
 | Find global | `list_globals` | `list_globals_filter("fragment")` |
-| Find string | `list_strings` | `list_globals_filter` + RVA calculation + `stringliteral.json` |
+| Resolve visible `StringLiteral_N` | Invent/guess content | `stringliteral.json` lookup by id or RVA |
+| Audit string discovery | IDA string search | Search `stringliteral.json`, then use matched RVA/address for targeted xrefs |
 | `sub_xxx` callers | `get_callers(sub_xxx)` | Do not need callers; decompile the helper body if needed |
 | Locate source file | `get_metadata` path guesses | Il2CppDumper dump files |
 | Decompile | - | `decompile_function(VA)` |
