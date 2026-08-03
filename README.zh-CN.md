@@ -36,6 +36,28 @@
 - `--ghidra` 安装自研 Ghidra skill，内容不变。
 - `--both` 安装双后端分发器版；agent 在运行时根据环境选择后端。
 
+### 通过 agent 安装
+
+`install.sh` 只在终端里交互提示；agent 安装时无法应答，所以 agent 需要**先问你要装哪个后端**，再带上对应参数执行。可直接复制的 prompt：
+
+先问你，再安装（推荐）：
+
+```text
+把 /path/to/il2cpp-to-csharp-skill 的 il2cpp-to-csharp skill 安装到我的 skill 目录（~/.claude/skills/il2cpp-to-csharp-skill）。先问我要装哪个后端 —— 1) 仅 IDA，2) 仅 Ghidra，3) 两者都装 —— 然后用对应的参数运行 install.sh，并验证安装结果。
+```
+
+安装整个 skill（双后端分发器版）：
+
+```text
+把 /path/to/il2cpp-to-csharp-skill 的完整 il2cpp-to-csharp skill（双后端）安装到 ~/.dsh/skills/il2cpp-to-csharp-skill：运行 ./install.sh --both，并验证分发器布局（SKILL.md、ida/、ghidra/）。
+```
+
+只安装单个后端（换 `--ida` / `--ghidra` 即装另一个）：
+
+```text
+把 /path/to/il2cpp-to-csharp-skill 的 il2cpp-to-csharp skill 只安装 IDA 后端到 ~/.codex/skills/il2cpp-to-csharp-skill：运行 ./install.sh --ida，并确认装好的 SKILL.md 是 IDA 工作流。
+```
+
 ## 准备
 
 1. 在 IDA Pro 中打开 IL2CPP 二进制，通常是 `GameAssembly.dll`，并等待初始分析完成。

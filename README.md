@@ -36,6 +36,28 @@ The repository contains both backends. **Installation lets you choose which one(
 - `--ghidra` installs the custom Ghidra skill, unchanged.
 - `--both` installs the dual-backend dispatcher; the agent selects the backend from the environment at runtime.
 
+### Installing through an agent
+
+`install.sh` prompts only on a terminal; an installing agent cannot answer it, so the agent must ask **you** which backend to install first, then pass the matching flag. Copy-paste prompts:
+
+Ask you first, then install (recommended):
+
+```text
+Install the il2cpp-to-csharp skill from /path/to/il2cpp-to-csharp-skill into my skill directory (~/.claude/skills/il2cpp-to-csharp-skill). First ask me which backend to install — 1) IDA only, 2) Ghidra only, 3) both — then run install.sh with the matching flag and verify the installed files.
+```
+
+Install the whole skill (both backends, dispatcher version):
+
+```text
+Install the complete il2cpp-to-csharp skill (both backends) from /path/to/il2cpp-to-csharp-skill into ~/.dsh/skills/il2cpp-to-csharp-skill: run ./install.sh --both and verify the dispatcher layout (SKILL.md, ida/, ghidra/).
+```
+
+Install a single backend only (swap `--ida` / `--ghidra` for the other backend):
+
+```text
+Install only the IDA backend of the il2cpp-to-csharp skill from /path/to/il2cpp-to-csharp-skill into ~/.codex/skills/il2cpp-to-csharp-skill: run ./install.sh --ida and confirm the installed SKILL.md is the IDA workflow.
+```
+
 ## Preparation
 
 1. Open the IL2CPP binary, usually `GameAssembly.dll`, in IDA Pro and wait for initial analysis to finish.
