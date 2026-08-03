@@ -23,39 +23,28 @@
 
 ## 安装
 
-仓库同时包含两个后端。**安装时由你选择装哪个（哪些）**，因此单后端安装与原版 skill 逐字节一致：
-
-```bash
-./install.sh                      # 交互式：选 1) IDA，2) Ghidra，3) 两者都装
-./install.sh --ida                # 只装 IDA 后端（默认目标：~/.claude/skills/il2cpp-to-csharp-skill）
-./install.sh --ghidra ~/.codex/skills/il2cpp-to-csharp-skill
-./install.sh --both ~/.dsh/skills/il2cpp-to-csharp-skill
-```
-
-- `--ida` 安装原版 IDA Pro MCP skill，内容不变。
-- `--ghidra` 安装自研 Ghidra skill，内容不变。
-- `--both` 安装双后端分发器版；agent 在运行时根据环境选择后端。
+仓库同时包含两个后端。装**整个 skill**（双后端分发器版）：把仓库根目录 —— `SKILL.md`、`LICENSE`、`README.md`、`ida/`、`ghidra/` —— 复制到你的 skill 目录即可。只装**单个后端**：只把对应后端文件夹复制到 skill 目录根，让它的 `SKILL.md` 成为 skill 的 `SKILL.md`（`ida/` 是原版 IDA skill，`ghidra/` 是自研 Ghidra skill）；单后端安装的文件与原版逐字节一致。
 
 ### 通过 agent 安装
 
-agent 会自己 clone 仓库，所以即使你本地什么都没有也能直接用这些 prompt。`install.sh` 只在终端里交互提示；agent 安装时无法应答，所以 agent 需要**先问你要装哪个后端**，再带上对应参数执行。可直接复制的 prompt：
+agent 会自己 clone 仓库，所以即使你本地什么都没有也能直接用这些 prompt。装到哪个目录由 agent 按自己平台的惯例决定，prompt 里不需要指定路径。可直接复制的 prompt：
 
 先问你，再安装（推荐）：
 
 ```text
-Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，然后把 il2cpp-to-csharp skill 安装到我的 skill 目录（~/.claude/skills/il2cpp-to-csharp-skill）。先问我要装哪个后端 —— 1) 仅 IDA，2) 仅 Ghidra，3) 两者都装 —— 然后在 clone 里用对应的参数运行 install.sh，并验证安装结果。装完可以把 clone 删掉。
+Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，然后把 il2cpp-to-csharp skill 安装到你的 skill 目录。先问我要装哪个后端 —— 1) 仅 IDA，2) 仅 Ghidra，3) 两者都装 —— 然后按选择安装：两者都装就复制仓库根目录（SKILL.md、LICENSE、ida/、ghidra/）；只装一个后端就只复制 ida/ 或 ghidra/ 文件夹，让它的 SKILL.md 成为 skill 的 SKILL.md。验证安装结果，装完删掉 clone。
 ```
 
 安装整个 skill（双后端分发器版）：
 
 ```text
-Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，把完整的 il2cpp-to-csharp skill（双后端）安装到 ~/.dsh/skills/il2cpp-to-csharp-skill：在 clone 里运行 ./install.sh --both，并验证分发器布局（SKILL.md、ida/、ghidra/）。装完可以把 clone 删掉。
+Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，把完整的 il2cpp-to-csharp skill（双后端分发器版）安装到你的 skill 目录：从 clone 里复制 SKILL.md、LICENSE、README.md、ida/ 和 ghidra/。验证布局，装完删掉 clone。
 ```
 
-只安装单个后端（换 `--ida` / `--ghidra` 即装另一个）：
+只安装单个后端：
 
 ```text
-Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，只把 il2cpp-to-csharp skill 的 IDA 后端安装到 ~/.codex/skills/il2cpp-to-csharp-skill：在 clone 里运行 ./install.sh --ida，并确认装好的 SKILL.md 是 IDA 工作流。装完可以把 clone 删掉。
+Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，只把 il2cpp-to-csharp skill 的 IDA 后端安装到你的 skill 目录：复制 ida/ 文件夹的内容，让它的 SKILL.md 成为 skill 的 SKILL.md。验证安装，装完删掉 clone。想装 Ghidra 后端就换成 ghidra/ 文件夹，做法相同。
 ```
 
 ## 准备

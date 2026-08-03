@@ -23,39 +23,28 @@ Output quality depends on the AI model and the available context. Restored code 
 
 ## Installation
 
-The repository contains both backends. **Installation lets you choose which one(s) to install**, so a single-backend install stays byte-identical to the original skill:
-
-```bash
-./install.sh                      # interactive: choose 1) IDA, 2) Ghidra, 3) Both
-./install.sh --ida                # IDA backend only (default target: ~/.claude/skills/il2cpp-to-csharp-skill)
-./install.sh --ghidra ~/.codex/skills/il2cpp-to-csharp-skill
-./install.sh --both ~/.dsh/skills/il2cpp-to-csharp-skill
-```
-
-- `--ida` installs the original IDA Pro MCP skill, unchanged.
-- `--ghidra` installs the custom Ghidra skill, unchanged.
-- `--both` installs the dual-backend dispatcher; the agent selects the backend from the environment at runtime.
+The repository contains both backends. Install the **whole skill** (both backends, dispatcher version) by copying the repository root — `SKILL.md`, `LICENSE`, `README.md`, `ida/`, `ghidra/` — into your skill directory. To install a **single backend**, copy only that backend's folder to the skill directory root so its `SKILL.md` becomes the skill's `SKILL.md` (`ida/` for the original IDA skill, `ghidra/` for the custom Ghidra skill); single-backend installs stay byte-identical to the originals.
 
 ### Installing through an agent
 
-The agent clones the repository itself, so these prompts work even when nothing is downloaded yet. `install.sh` prompts only on a terminal; an installing agent cannot answer it, so the agent must ask **you** which backend to install first, then pass the matching flag. Copy-paste prompts:
+The agent clones the repository itself, so these prompts work even when nothing is downloaded yet. The agent decides where skills live on its own platform — no paths are specified. Copy-paste prompts:
 
 Ask you first, then install (recommended):
 
 ```text
-Clone https://github.com/MetaMikuAI/il2cpp-to-csharp-skill, then install the il2cpp-to-csharp skill into my skill directory (~/.claude/skills/il2cpp-to-csharp-skill). First ask me which backend to install — 1) IDA only, 2) Ghidra only, 3) both — then run install.sh from the clone with the matching flag and verify the installed files. You may delete the clone afterwards.
+Clone https://github.com/MetaMikuAI/il2cpp-to-csharp-skill, then install the il2cpp-to-csharp skill into your skill directory. First ask me which backend to install — 1) IDA only, 2) Ghidra only, 3) both — then install accordingly: copy the whole repo root (SKILL.md, LICENSE, ida/, ghidra/) for both, or just the ida/ or ghidra/ folder for a single backend so its SKILL.md becomes the skill's SKILL.md. Verify the installed files and delete the clone afterwards.
 ```
 
 Install the whole skill (both backends, dispatcher version):
 
 ```text
-Clone https://github.com/MetaMikuAI/il2cpp-to-csharp-skill and install the complete il2cpp-to-csharp skill (both backends) into ~/.dsh/skills/il2cpp-to-csharp-skill: run ./install.sh --both from the clone and verify the dispatcher layout (SKILL.md, ida/, ghidra/). You may delete the clone afterwards.
+Clone https://github.com/MetaMikuAI/il2cpp-to-csharp-skill and install the complete il2cpp-to-csharp skill (both backends, dispatcher version) into your skill directory: copy SKILL.md, LICENSE, README.md, ida/ and ghidra/ from the clone. Verify the layout and delete the clone afterwards.
 ```
 
-Install a single backend only (swap `--ida` / `--ghidra` for the other backend):
+Install a single backend only:
 
 ```text
-Clone https://github.com/MetaMikuAI/il2cpp-to-csharp-skill and install only the IDA backend of the il2cpp-to-csharp skill into ~/.codex/skills/il2cpp-to-csharp-skill: run ./install.sh --ida from the clone and confirm the installed SKILL.md is the IDA workflow. You may delete the clone afterwards.
+Clone https://github.com/MetaMikuAI/il2cpp-to-csharp-skill and install only the IDA backend of the il2cpp-to-csharp skill into your skill directory: copy the contents of the ida/ folder so its SKILL.md becomes the skill's SKILL.md. Verify the install and delete the clone afterwards. To install the Ghidra backend instead, do the same with the ghidra/ folder.
 ```
 
 ## Preparation
