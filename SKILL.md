@@ -34,7 +34,7 @@ Read and follow **exactly one** backend's SKILL.md. The two backends are self-co
 |---|---|
 | `ida/SKILL.md` | IDA backend workflow (original skill, unmodified) |
 | `ida/` | IDA docs: `ida-usage.md`, `ida-quirks.md`, `strings.md`, `helpers.md`, `compiler-patterns.md`; `scripts/` (`lookup_strings.py`, `field_offset.py`) |
-| `ghidra/SKILL.md` | Ghidra backend workflow (custom skill, unmodified) |
+| `ghidra/SKILL.md` | Ghidra backend workflow (custom skill) |
 | `ghidra/` | Ghidra docs: `ghidra-setup.md`, `ghidra-query.md`, `ghidra-quirks.md`, `strings.md`, `helpers.md`, `string-formatting.md`, `lambdas-closures.md`, `linq-generics.md`, `coroutines.md`, `async.md`, `runtime-exceptions.md`, `runtime-memory.md`; `scripts/` (`ghidra_query.py`, `GhidraQuery.java`, `ApplyIl2CppSymbols.java`, `query_script_json.py`, `lookup_strings.py`, `field_offset.py`); `agents/` |
 
 Both `scripts/` trees are backend-specific copies; always run them from within their own backend directory so relative paths and references stay valid.

@@ -10,7 +10,7 @@ Read this file when the current method contains `__c`, `__9__N_M`, `b__`, `Displ
 4. Record each helper's parameters, captures, result, and side effects.
 5. Inline only short single-use helpers. Keep shared, named, complex, or side-effecting helpers as local functions or private methods.
 
-Prefer `scripts/ghidra_query.py query ... info` and `decompile` for exact RVAs. Use bounded xrefs only when ownership remains unclear. Do not enumerate Ghidra functions.
+Prefer `scripts/ghidra_query.py query ... info` and `decompile` for exact RVAs. Use xrefs when ownership remains unclear.
 
 ## Symbol Map
 

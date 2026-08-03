@@ -701,7 +701,7 @@ SKILL.md               分发器：后端选择 + 共享规则（从这里开始
 ida/                   IDA 后端（原版 skill，未修改）
   SKILL.md             IDA 工作流：ida-usage.md、ida-quirks.md、strings.md、
                        helpers.md、compiler-patterns.md、scripts/
-ghidra/                Ghidra 后端（自研 skill，未修改）
+ghidra/                Ghidra 后端（自研 skill）
   SKILL.md             Ghidra 工作流：ghidra-setup.md、ghidra-query.md、
                        ghidra-quirks.md、strings.md、helpers.md、
                        string-formatting.md、lambdas-closures.md、linq-generics.md、

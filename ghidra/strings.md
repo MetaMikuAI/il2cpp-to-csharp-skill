@@ -12,15 +12,13 @@ python3 scripts/lookup_strings.py \
   StringLiteral_8179 StringLiteral_17614
 ```
 
-Resolve every label from a saved decompile in one bounded call:
+Resolve every label from a saved decompile in one call:
 
 ```bash
 python3 scripts/lookup_strings.py \
   --json-path /path/to/stringliteral.json \
   --from-file /path/to/decompile.c
 ```
-
-The script rejects more than 100 results by default instead of silently flooding the tool output. Narrow the input or pass an explicit `--limit` for a deliberate audit.
 
 Alternative inputs:
 
@@ -38,10 +36,8 @@ Only when the task explicitly starts from string content:
 
 1. Search `stringliteral.json` for the known value or fragment.
 2. Read the matched RVA.
-3. Query bounded Ghidra xrefs for that RVA or imported label.
+3. Query Ghidra xrefs for that RVA or imported label.
 4. Decompile only the relevant owners.
-
-Do not enumerate Ghidra's global string database.
 
 ## Failure Handling
 
