@@ -21,9 +21,24 @@
 - **Ghidra 后端：** Ghidra（GUI 或 `analyzeHeadless`）。
 - 两者通用：Il2CppDumper 输出 —— `script.json`、`stringliteral.json`、`DummyDll/` 或 `dump.cs` —— 以及用于运行内置辅助脚本的 Python 3。
 
+## 安装
+
+仓库同时包含两个后端。**安装时由你选择装哪个（哪些）**，因此单后端安装与原版 skill 逐字节一致：
+
+```bash
+./install.sh                      # 交互式：选 1) IDA，2) Ghidra，3) 两者都装
+./install.sh --ida                # 只装 IDA 后端（默认目标：~/.claude/skills/il2cpp-to-csharp-skill）
+./install.sh --ghidra ~/.codex/skills/il2cpp-to-csharp-skill
+./install.sh --both ~/.dsh/skills/il2cpp-to-csharp-skill
+```
+
+- `--ida` 安装原版 IDA Pro MCP skill，内容不变。
+- `--ghidra` 安装自研 Ghidra skill，内容不变。
+- `--both` 安装双后端分发器版；agent 在运行时根据环境选择后端。
+
 ## 用法
 
-将本目录安装或复制为名为 `il2cpp-to-csharp-skill` 的 skill，然后让 agent 每次恢复一个函数。分发器会根据你说明的环境选择后端：
+将本目录安装或复制为名为 `il2cpp-to-csharp-skill` 的 skill（见上"安装"），然后让 agent 每次恢复一个函数。分发器会根据你说明的环境选择后端：
 
 ```text
 使用 $il2cpp-to-csharp-skill 来恢复 0x180000000.

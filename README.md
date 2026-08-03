@@ -21,9 +21,24 @@ Output quality depends on the AI model and the available context. Restored code 
 - **Ghidra backend:** Ghidra (GUI or `analyzeHeadless`).
 - Both: Il2CppDumper output — `script.json`, `stringliteral.json`, `DummyDll/` or `dump.cs` — and Python 3 for the bundled helper scripts.
 
+## Installation
+
+The repository contains both backends. **Installation lets you choose which one(s) to install**, so a single-backend install stays byte-identical to the original skill:
+
+```bash
+./install.sh                      # interactive: choose 1) IDA, 2) Ghidra, 3) Both
+./install.sh --ida                # IDA backend only (default target: ~/.claude/skills/il2cpp-to-csharp-skill)
+./install.sh --ghidra ~/.codex/skills/il2cpp-to-csharp-skill
+./install.sh --both ~/.dsh/skills/il2cpp-to-csharp-skill
+```
+
+- `--ida` installs the original IDA Pro MCP skill, unchanged.
+- `--ghidra` installs the custom Ghidra skill, unchanged.
+- `--both` installs the dual-backend dispatcher; the agent selects the backend from the environment at runtime.
+
 ## Usage
 
-Install or copy this folder as a skill named `il2cpp-to-csharp-skill`, then ask the agent to restore one function at a time. The dispatcher will pick the backend from the environment you state:
+Install or copy this folder as a skill named `il2cpp-to-csharp-skill` (see Installation), then ask the agent to restore one function at a time. The dispatcher will pick the backend from the environment you state:
 
 ```text
 Use $il2cpp-to-csharp-skill to restore 0x180000000.
