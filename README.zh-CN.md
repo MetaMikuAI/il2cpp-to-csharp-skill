@@ -38,24 +38,24 @@
 
 ### 通过 agent 安装
 
-`install.sh` 只在终端里交互提示；agent 安装时无法应答，所以 agent 需要**先问你要装哪个后端**，再带上对应参数执行。可直接复制的 prompt：
+agent 会自己 clone 仓库，所以即使你本地什么都没有也能直接用这些 prompt。`install.sh` 只在终端里交互提示；agent 安装时无法应答，所以 agent 需要**先问你要装哪个后端**，再带上对应参数执行。可直接复制的 prompt：
 
 先问你，再安装（推荐）：
 
 ```text
-把 /path/to/il2cpp-to-csharp-skill 的 il2cpp-to-csharp skill 安装到我的 skill 目录（~/.claude/skills/il2cpp-to-csharp-skill）。先问我要装哪个后端 —— 1) 仅 IDA，2) 仅 Ghidra，3) 两者都装 —— 然后用对应的参数运行 install.sh，并验证安装结果。
+Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，然后把 il2cpp-to-csharp skill 安装到我的 skill 目录（~/.claude/skills/il2cpp-to-csharp-skill）。先问我要装哪个后端 —— 1) 仅 IDA，2) 仅 Ghidra，3) 两者都装 —— 然后在 clone 里用对应的参数运行 install.sh，并验证安装结果。装完可以把 clone 删掉。
 ```
 
 安装整个 skill（双后端分发器版）：
 
 ```text
-把 /path/to/il2cpp-to-csharp-skill 的完整 il2cpp-to-csharp skill（双后端）安装到 ~/.dsh/skills/il2cpp-to-csharp-skill：运行 ./install.sh --both，并验证分发器布局（SKILL.md、ida/、ghidra/）。
+Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，把完整的 il2cpp-to-csharp skill（双后端）安装到 ~/.dsh/skills/il2cpp-to-csharp-skill：在 clone 里运行 ./install.sh --both，并验证分发器布局（SKILL.md、ida/、ghidra/）。装完可以把 clone 删掉。
 ```
 
 只安装单个后端（换 `--ida` / `--ghidra` 即装另一个）：
 
 ```text
-把 /path/to/il2cpp-to-csharp-skill 的 il2cpp-to-csharp skill 只安装 IDA 后端到 ~/.codex/skills/il2cpp-to-csharp-skill：运行 ./install.sh --ida，并确认装好的 SKILL.md 是 IDA 工作流。
+Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，只把 il2cpp-to-csharp skill 的 IDA 后端安装到 ~/.codex/skills/il2cpp-to-csharp-skill：在 clone 里运行 ./install.sh --ida，并确认装好的 SKILL.md 是 IDA 工作流。装完可以把 clone 删掉。
 ```
 
 ## 准备
