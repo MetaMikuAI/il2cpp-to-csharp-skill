@@ -107,7 +107,7 @@ public class ApplyIl2CppSymbols extends GhidraScript {
 
     private void createFunctionStarts() {
         JsonArray addresses = array("Addresses");
-        int count = Math.max(0, addresses.size() - 1); // final entry is commonly a sentinel
+        int count = addresses.size();
         monitor.initialize(count);
         monitor.setMessage("Creating IL2CPP function starts");
         for (int i = 0; i < count && !monitor.isCancelled(); i++) {

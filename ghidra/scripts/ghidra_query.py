@@ -27,6 +27,8 @@ QUERY_END = "=== GHIDRA_QUERY_END ==="
 SCRIPT_PREFIX = "GhidraQuery.java>"
 STRING_RE = re.compile(r"\bStringLiteral_(\d+)\b")
 CONTROL_RE = re.compile(r"^(else\s+if|if|switch|case|default|for|while|do)\b")
+TRUNCATION_RE = re.compile(r"^<truncated(?:; total=(\d+))?>$")
+SECTION_BY_ACTION = {"disassemble": "disassembly"}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -290,6 +292,30 @@ def parse_query_block(lines: Iterable[str]) -> tuple[dict[str, str], list[str], 
             if re.fullmatch(r"[a-z_]+", key):
                 metadata[key] = value
     return metadata, aliases, sections
+
+
+def summarize_section(items: list[str], preview_limit: int) -> dict[str, Any]:
+    values: list[str] = []
+    source_truncated = False
+    reported_total: int | None = None
+    for item in items:
+        marker = TRUNCATION_RE.fullmatch(item)
+        if marker is None:
+            values.append(item)
+            continue
+        source_truncated = True
+        if marker.group(1) is not None:
+            reported_total = int(marker.group(1))
+
+    preview_truncated = len(values) > preview_limit
+    return {
+        "count": reported_total if reported_total is not None else len(values),
+        "returned_count": len(values),
+        "count_exact": reported_total is not None or not source_truncated,
+        "preview": values[:preview_limit],
+        "truncated": source_truncated or preview_truncated,
+        "source_truncated": source_truncated,
+    }
 
 
 def lexical_index(c_code: str) -> dict[str, Any]:
@@ -640,13 +666,10 @@ def run_query(args: argparse.Namespace) -> int:
 
     if args.action != "decompile":
         if args.action != "info":
-            items = sections.get(args.action, [])
+            section_name = SECTION_BY_ACTION.get(args.action, args.action)
+            items = sections.get(section_name, [])
             preview_limit = min(args.preview_items, 50)
-            common["result"] = {
-                "count": len(items),
-                "preview": items[:preview_limit],
-                "truncated": len(items) > preview_limit,
-            }
+            common["result"] = summarize_section(items, preview_limit)
         return finalize_success(common, run_dir, cache_dir, cache_key, fingerprint)
 
     if not c_path.is_file() or metadata.get("decompile_complete") != "true":
@@ -820,12 +843,9 @@ def run_batch(args: argparse.Namespace) -> int:
         }
         if args.action != "decompile":
             if args.action != "info":
-                values = sections.get(args.action, [])
-                item["result"] = {
-                    "count": len(values),
-                    "preview": values[:preview_limit],
-                    "truncated": len(values) > preview_limit,
-                }
+                section_name = SECTION_BY_ACTION.get(args.action, args.action)
+                values = sections.get(section_name, [])
+                item["result"] = summarize_section(values, preview_limit)
             items.append(item)
             continue
 

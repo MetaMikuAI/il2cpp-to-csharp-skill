@@ -9,14 +9,16 @@ Reconstruct readable C# from Unity IL2CPP binaries, one method at a time. This s
 
 ## 1. Choose a Backend — do this first, exactly once
 
-Read and follow **exactly one** backend's SKILL.md. The two backends are self-contained: never mix their instructions, tool rules, or docs.
+Read and follow **exactly one** backend's SKILL.md. The two backends are self-contained: never mix their instructions, tool rules, or docs. Honor an explicit backend choice from the user first. Otherwise detect which environments are ready:
 
 - **IDA backend** (original) — use when IDA Pro MCP tools are present in the tool list (e.g. `decompile_function`, `get_function_by_address`, `get_callees`, `get_xrefs_to`), or when the user states IDA is the working environment.
   → Read [ida/SKILL.md](ida/SKILL.md) and follow it completely. All IDA docs and scripts live under `ida/`.
 - **Ghidra backend** (custom) — use when Ghidra (GUI or `analyzeHeadless`) is set up and this skill's Ghidra scripts are reachable (`ghidra/scripts/ghidra_query.py`, `ghidra/scripts/ApplyIl2CppSymbols.java`), or when the user states Ghidra is the working environment.
   → Read [ghidra/SKILL.md](ghidra/SKILL.md) and follow it completely. All Ghidra docs and scripts live under `ghidra/`.
 
-If neither environment is confirmed — no IDA Pro MCP tools and no ready Ghidra project/scripts — ask the user which backend is ready before analyzing anything.
+- If exactly one backend is ready, use it.
+- If both backends are ready, ask the user which one to use before analyzing anything.
+- If neither backend is ready, ask which backend the user intends to prepare before analyzing anything.
 
 ## 2. Shared Rules (apply to both backends)
 

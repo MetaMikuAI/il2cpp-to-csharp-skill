@@ -95,7 +95,7 @@ public class GhidraQuery extends GhidraScript {
                         parseOptionalInt(args, 2, DEFAULT_LIMIT));
                     break;
                 case "disassemble":
-                    disassemble(function, parseOptionalInt(args, 2, DEFAULT_LIMIT));
+                    disassemble(target, function, parseOptionalInt(args, 2, DEFAULT_LIMIT));
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown action: " + action);
@@ -524,13 +524,18 @@ public class GhidraQuery extends GhidraScript {
         println("=== XREFS_END ===");
     }
 
-    private void disassemble(Function function, int limit) {
+    private void disassemble(Address target, Function function, int limit) {
+        Instruction containing = currentProgram.getListing().getInstructionContaining(target);
+        Address start = containing == null ? target : containing.getAddress();
         InstructionIterator instructions =
-            currentProgram.getListing().getInstructions(function.getBody(), true);
+            currentProgram.getListing().getInstructions(start, true);
         println("=== DISASSEMBLY_BEGIN ===");
         int count = 0;
         while (instructions.hasNext()) {
             Instruction instruction = instructions.next();
+            if (!function.getBody().contains(instruction.getAddress())) {
+                break;
+            }
             if (count >= limit) {
                 println("<truncated>");
                 break;

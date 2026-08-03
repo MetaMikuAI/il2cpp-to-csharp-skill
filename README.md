@@ -23,28 +23,22 @@ Output quality depends on the AI model and the available context. Restored code 
 
 ## Installation
 
-The repository contains both backends. Install the **whole skill** (both backends, dispatcher version) by copying the repository root — `SKILL.md`, `LICENSE`, `README.md`, `ida/`, `ghidra/` — into your skill directory. To install a **single backend**, copy only that backend's folder to the skill directory root so its `SKILL.md` becomes the skill's `SKILL.md` (`ida/` for the original IDA skill, `ghidra/` for the custom Ghidra skill); single-backend installs stay byte-identical to the originals.
+Install the skill in its own directory under the client's skills root. `SKILL.md` must be directly inside that directory, not one level deeper.
+
+| Mode | Copy into `<skill-directory>/` |
+|---|---|
+| Both backends | Root `SKILL.md`, `ida/`, and `ghidra/` |
+| IDA only | The **contents** of `ida/` |
+| Ghidra only | The **contents** of `ghidra/` |
+
+The two single-backend installations use the original backend files unchanged. The combined installation uses the root dispatcher to select one backend at runtime.
 
 ### Installing through an agent
 
-The agent clones the repository itself, so these prompts work even when nothing is downloaded yet. The agent decides where skills live on its own platform — no paths are specified. Copy-paste prompts:
-
-Ask you first, then install (recommended):
+Give your agent this prompt; no local clone is required:
 
 ```text
-Clone https://github.com/MetaMikuAI/il2cpp-to-csharp-skill, then install the il2cpp-to-csharp skill into your skill directory. First ask me which backend to install — 1) IDA only, 2) Ghidra only, 3) both — then install accordingly: copy the whole repo root (SKILL.md, LICENSE, ida/, ghidra/) for both, or just the ida/ or ghidra/ folder for a single backend so its SKILL.md becomes the skill's SKILL.md. Verify the installed files and delete the clone afterwards.
-```
-
-Install the whole skill (both backends, dispatcher version):
-
-```text
-Clone https://github.com/MetaMikuAI/il2cpp-to-csharp-skill and install the complete il2cpp-to-csharp skill (both backends, dispatcher version) into your skill directory: copy SKILL.md, LICENSE, README.md, ida/ and ghidra/ from the clone. Verify the layout and delete the clone afterwards.
-```
-
-Install a single backend only:
-
-```text
-Clone https://github.com/MetaMikuAI/il2cpp-to-csharp-skill and install only the IDA backend of the il2cpp-to-csharp skill into your skill directory: copy the contents of the ida/ folder so its SKILL.md becomes the skill's SKILL.md. Verify the install and delete the clone afterwards. To install the Ghidra backend instead, do the same with the ghidra/ folder.
+Install the skill from https://github.com/MetaMikuAI/il2cpp-to-csharp-skill. Before making changes, ask me to choose IDA only, Ghidra only, or both backends. Then detect this client's skills root and install the selected version as one skill in its own directory. For both backends, use the repository root dispatcher (`SKILL.md`, `ida/`, and `ghidra/`). For a single backend, use the contents of that backend directory as the skill root. Do not add an extra repository or backend directory level: `SKILL.md` must be directly inside the installed skill directory. If the destination already exists, inspect it and ask before replacing or merging anything. Verify the final layout and frontmatter, safely remove only the temporary checkout, and tell me whether a restart or new session is needed.
 ```
 
 ## Preparation
@@ -56,17 +50,17 @@ Clone https://github.com/MetaMikuAI/il2cpp-to-csharp-skill and install only the 
 
 ## Usage
 
-Install or copy this folder as a skill named `il2cpp-to-csharp-skill`, then ask the agent to restore one function at a time:
+Install or copy this folder as a skill named `il2cpp-to-csharp`, then ask the agent to restore one function at a time:
 
 ```text
-Use $il2cpp-to-csharp-skill to restore 0x180000000.
+Use $il2cpp-to-csharp to restore 0x180000000.
 IDA Pro MCP is ready. The dnSpy-exported stub project from DummyDll/Assembly-CSharp.dll is at C:\path\to\DummyDllExport, and stringliteral.json is at C:\path\to\stringliteral.json.
 ```
 
 Ghidra backend prompt example:
 
 ```text
-Use $il2cpp-to-csharp-skill to restore rva:0x123456.
+Use $il2cpp-to-csharp to restore rva:0x123456.
 Ghidra is ready. Project at /path/to/ghidra-projects/game, program UnityFramework, stringliteral.json at /path/to/stringliteral.json.
 ```
 

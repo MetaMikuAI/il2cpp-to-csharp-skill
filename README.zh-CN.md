@@ -23,28 +23,22 @@
 
 ## 安装
 
-仓库同时包含两个后端。装**整个 skill**（双后端分发器版）：把仓库根目录 —— `SKILL.md`、`LICENSE`、`README.md`、`ida/`、`ghidra/` —— 复制到你的 skill 目录即可。只装**单个后端**：只把对应后端文件夹复制到 skill 目录根，让它的 `SKILL.md` 成为 skill 的 `SKILL.md`（`ida/` 是原版 IDA skill，`ghidra/` 是自研 Ghidra skill）；单后端安装的文件与原版逐字节一致。
+请把 skill 安装到当前客户端 skills 根目录下的独立目录中。`SKILL.md` 必须直接位于该目录下，不能再多套一层目录。
+
+| 安装模式 | 复制到 `<skill-directory>/` 的内容 |
+|---|---|
+| 双后端 | 根目录的 `SKILL.md`、`ida/` 和 `ghidra/` |
+| 仅 IDA | `ida/` 目录中的**全部内容** |
+| 仅 Ghidra | `ghidra/` 目录中的**全部内容** |
+
+单后端安装会原样使用对应后端的文件；双后端安装则由根目录的分发器在运行时选择一个后端。
 
 ### 通过 agent 安装
 
-agent 会自己 clone 仓库，所以即使你本地什么都没有也能直接用这些 prompt。装到哪个目录由 agent 按自己平台的惯例决定，prompt 里不需要指定路径。可直接复制的 prompt：
-
-先问你，再安装（推荐）：
+把下面这段 prompt 发给 agent 即可，不需要提前 clone 仓库：
 
 ```text
-Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，然后把 il2cpp-to-csharp skill 安装到你的 skill 目录。先问我要装哪个后端 —— 1) 仅 IDA，2) 仅 Ghidra，3) 两者都装 —— 然后按选择安装：两者都装就复制仓库根目录（SKILL.md、LICENSE、ida/、ghidra/）；只装一个后端就只复制 ida/ 或 ghidra/ 文件夹，让它的 SKILL.md 成为 skill 的 SKILL.md。验证安装结果，装完删掉 clone。
-```
-
-安装整个 skill（双后端分发器版）：
-
-```text
-Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，把完整的 il2cpp-to-csharp skill（双后端分发器版）安装到你的 skill 目录：从 clone 里复制 SKILL.md、LICENSE、README.md、ida/ 和 ghidra/。验证布局，装完删掉 clone。
-```
-
-只安装单个后端：
-
-```text
-Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，只把 il2cpp-to-csharp skill 的 IDA 后端安装到你的 skill 目录：复制 ida/ 文件夹的内容，让它的 SKILL.md 成为 skill 的 SKILL.md。验证安装，装完删掉 clone。想装 Ghidra 后端就换成 ghidra/ 文件夹，做法相同。
+请从 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill 安装这个 skill。执行任何修改前，先问我要安装“仅 IDA”“仅 Ghidra”还是“双后端”。得到选择后，自动识别当前客户端的 skills 根目录，并把所选版本安装为一个独立 skill。安装双后端时，以仓库根目录的分发器为 skill 根，只安装 `SKILL.md`、`ida/` 和 `ghidra/`；安装单后端时，以对应后端目录中的内容为 skill 根。不要多套仓库目录或后端目录：`SKILL.md` 必须直接位于安装后的 skill 目录中。如果目标目录已存在，先检查并询问我是否替换或合并，不要直接覆盖。安装后验证目录结构和 frontmatter，只安全删除本次创建的临时 checkout，并告诉我是否需要重启或开启新会话。
 ```
 
 ## 准备
@@ -56,17 +50,17 @@ Clone 下 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill，只把 il2cpp-t
 
 ## 用法
 
-将本目录安装或复制为名为 `il2cpp-to-csharp-skill` 的 skill，然后让 agent 每次恢复一个函数：
+将本目录安装或复制为名为 `il2cpp-to-csharp` 的 skill，然后让 agent 每次恢复一个函数：
 
 ```text
-使用 $il2cpp-to-csharp-skill 来恢复 0x180000000.
+使用 $il2cpp-to-csharp 来恢复 0x180000000.
 IDA Pro MCP 已就绪。由 DummyDll/Assembly-CSharp.dll 通过 dnSpy 导出的桩代码项目位于 C:\path\to\DummyDllExport，stringliteral.json 位于 C:\path\to\stringliteral.json。
 ```
 
 Ghidra 后端调用示例（安装的是 Ghidra 后端或双后端时）：
 
 ```text
-使用 $il2cpp-to-csharp-skill 来恢复 rva:0x123456.
+使用 $il2cpp-to-csharp 来恢复 rva:0x123456.
 Ghidra 已就绪。项目位于 /path/to/ghidra-projects/game，程序为 UnityFramework，stringliteral.json 位于 /path/to/stringliteral.json。
 ```
 
