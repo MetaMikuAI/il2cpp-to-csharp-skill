@@ -2,17 +2,44 @@
 
 [English](README.md)
 
-一个用于从 Unity IL2CPP 二进制中恢复可读 C# 的 skill，依赖 IDA Pro MCP、Il2CppDumper 输出、DummyDll stub 和 `stringliteral.json`。
+一个用于从 Unity IL2CPP 二进制中恢复可读 C# 的 skill。它内置**两个相互独立的后端**，目标相同，且使用相同的 Il2CppDumper 产物：
+
+| 后端 | 环境 | 文档 |
+|---|---|---|
+| **IDA**（原版） | IDA Pro + IDA Pro MCP | [`ida/SKILL.md`](ida/SKILL.md) |
+| **Ghidra**（自研） | Ghidra GUI 或 `analyzeHeadless` | [`ghidra/SKILL.md`](ghidra/SKILL.md) |
 
 它不是一键反编译器，而是帮助 agent 分析用户给出的 VA 或函数名，并在恢复 C# 时保留字符串、switch 分支、lambda、LINQ、async/coroutine 状态机和 IL2CPP 特有噪音。
 
-输出质量取决于所使用的 AI 模型能力和可用上下文。恢复代码仅供参考，应结合 IDA、DummyDll stub 和实际运行行为进行人工核对。
+**后端选择：** 根目录 [`SKILL.md`](SKILL.md) 是一个精简分发器：当 IDA Pro MCP 工具可用时选择 IDA 后端，当 Ghidra 环境可用时选择 Ghidra 后端，然后完全遵循该后端自己的 `SKILL.md`。两个后端互不混用指令，因此任一工作流都不会被稀释。
+
+输出质量取决于所使用的 AI 模型能力和可用上下文。恢复代码仅供参考，应结合反编译输出、DummyDll stub 和实际运行行为进行人工核对。
 
 ## 前置要求
 
-- 已启用 IDA Pro MCP 的 IDA Pro
-- Il2CppDumper 输出：`script.json`、`stringliteral.json` 和 `DummyDll/`
-- Python 3，用于运行内置辅助脚本
+- **IDA 后端：** 已启用 IDA Pro MCP 的 IDA Pro。
+- **Ghidra 后端：** Ghidra（GUI 或 `analyzeHeadless`）。
+- 两者通用：Il2CppDumper 输出 —— `script.json`、`stringliteral.json`、`DummyDll/` 或 `dump.cs` —— 以及用于运行内置辅助脚本的 Python 3。
+
+## 安装
+
+请把 skill 安装到当前客户端 skills 根目录下的独立目录中。`SKILL.md` 必须直接位于该目录下，不能再多套一层目录。
+
+| 安装模式 | 复制到 `<skill-directory>/` 的内容 |
+|---|---|
+| 双后端 | 根目录的 `SKILL.md`、`ida/` 和 `ghidra/` |
+| 仅 IDA | `ida/` 目录中的**全部内容** |
+| 仅 Ghidra | `ghidra/` 目录中的**全部内容** |
+
+单后端安装会原样使用对应后端的文件；双后端安装则由根目录的分发器在运行时选择一个后端。
+
+### 通过 agent 安装
+
+把下面这段 prompt 发给 agent 即可，不需要提前 clone 仓库：
+
+```text
+请从 https://github.com/MetaMikuAI/il2cpp-to-csharp-skill 安装这个 skill。执行任何修改前，先问我要安装“仅 IDA”“仅 Ghidra”还是“双后端”。得到选择后，自动识别当前客户端的 skills 根目录，并把所选版本安装为一个独立 skill。安装双后端时，以仓库根目录的分发器为 skill 根，只安装 `SKILL.md`、`ida/` 和 `ghidra/`；安装单后端时，以对应后端目录中的内容为 skill 根。不要多套仓库目录或后端目录：`SKILL.md` 必须直接位于安装后的 skill 目录中。如果目标目录已存在，先检查并询问我是否替换或合并，不要直接覆盖。安装后验证目录结构和 frontmatter，只安全删除本次创建的临时 checkout，并告诉我是否需要重启或开启新会话。
+```
 
 ## 准备
 
@@ -23,11 +50,18 @@
 
 ## 用法
 
-将本目录安装或复制为名为 `il2cpp-to-csharp-skill` 的 skill，然后让 agent 每次恢复一个函数：
+将本目录安装或复制为名为 `il2cpp-to-csharp` 的 skill，然后让 agent 每次恢复一个函数：
 
 ```text
-使用 $il2cpp-to-csharp-skill 来恢复 0x180000000.
+使用 $il2cpp-to-csharp 来恢复 0x180000000.
 IDA Pro MCP 已就绪。由 DummyDll/Assembly-CSharp.dll 通过 dnSpy 导出的桩代码项目位于 C:\path\to\DummyDllExport，stringliteral.json 位于 C:\path\to\stringliteral.json。
+```
+
+Ghidra 后端调用示例（安装的是 Ghidra 后端或双后端时）：
+
+```text
+使用 $il2cpp-to-csharp 来恢复 rva:0x123456.
+Ghidra 已就绪。项目位于 /path/to/ghidra-projects/game，程序为 UnityFramework，stringliteral.json 位于 /path/to/stringliteral.json。
 ```
 
 ## 示例
@@ -601,3 +635,78 @@ private IEnumerator SetLinenear(GameObject doll, UIElementCluster uiElementClust
 }
 ```
 
+### 例 3 — Ghidra 后端
+
+用 Ghidra 后端查询例 1 的同一个 `OverrideSave` 方法（与 IDA 后端最终收敛到同一份源码）：
+
+```bash
+python3 scripts/ghidra_query.py query \
+  --project-location /path/to/ghidra-projects \
+  --project-name game \
+  --program UnityFramework \
+  decompile name:ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16__MoveNext
+```
+
+Ghidra 反编译 C（摘自完整 `decompile.c`，省略类初始化保护和 builder 脚手架）
+
+```c
+void ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16__MoveNext
+          (ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16_o *this, MethodInfo *method)
+
+{
+  Cysharp_Threading_Tasks_UniTask_o u__1;
+
+  if (this->fields.__1__state == 0) {
+    u__1 = this->fields.__u__1;
+    this->fields.__u__1 = 0;
+    this->fields.__1__state = -1;
+LAB_00123456:
+    UniTask_Awaiter__GetResult(&u__1);
+    ResultScene_UI_ResultSceneSavePannel__ClosePanel(this->fields.__4__this, 0);
+    this->fields.__1__state = -2;
+    return;
+  }
+  this->fields.__4__this->fields.m_BlockSubPanelCommand = 1;
+  ResultScene_UI_ResultSceneSavePannel__HidePanel(this->fields.__4__this, 0);
+  ResultScene_UI_ResultSceneSavePannel__SavePlayerDataCoreAsync
+            (&u__1, this->fields.__4__this, this->fields.index, 0);
+  if (UniTask_Awaiter__IsCompleted(&u__1) == 0) {
+    this->fields.__1__state = 0;
+    this->fields.__u__1 = u__1;
+    AsyncUniTaskVoidMethodBuilder__AwaitUnsafeOnCompleted(&this->fields.__t__builder, &u__1, this);
+    return;
+  }
+  goto LAB_00123456;
+}
+```
+
+恢复结果（与例 1 相同 —— 两个后端收敛到同一份源码）：
+
+```csharp
+private async UniTaskVoid OverrideSave(int index)
+{
+    m_BlockSubPanelCommand = true;
+    HidePanel();
+    await SavePlayerDataCoreAsync(index);
+    ClosePanel();
+}
+```
+
+以上名称与地址仅为示例占位，与 skill 的约定一致；真实分析时以当前二进制的 Ghidra 输出为准。
+
+## 仓库结构
+
+```
+SKILL.md               分发器：后端选择 + 共享规则（从这里开始）
+ida/                   IDA 后端（原版 skill，未修改）
+  SKILL.md             IDA 工作流：ida-usage.md、ida-quirks.md、strings.md、
+                       helpers.md、compiler-patterns.md、scripts/
+ghidra/                Ghidra 后端（自研 skill，未修改）
+  SKILL.md             Ghidra 工作流：ghidra-setup.md、ghidra-query.md、
+                       ghidra-quirks.md、strings.md、helpers.md、
+                       string-formatting.md、lambdas-closures.md、linq-generics.md、
+                       coroutines.md、async.md、runtime-exceptions.md、
+                       runtime-memory.md、scripts/、agents/
+```
+
+每个后端的 `scripts/` 目录都是自包含的；请在该后端自己的目录内运行其脚本，以保证相对路径引用有效。

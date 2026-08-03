@@ -1,0 +1,4 @@
+interface:
+  display_name: "IL2CPP to C# (Ghidra)"
+  short_description: "Restore IL2CPP methods to C# with Ghidra"
+  default_prompt: "Use $il2cpp-to-csharp to reconstruct this IL2CPP method as plausible C# with Ghidra."

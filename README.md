@@ -2,17 +2,44 @@
 
 [中文](README.zh-CN.md)
 
-A skill for restoring readable C# from Unity IL2CPP binaries with IDA Pro MCP, Il2CppDumper output, DummyDll stubs, and `stringliteral.json`.
+A skill for restoring readable C# from Unity IL2CPP binaries. It ships **two independent backends** that share the same goal and the same Il2CppDumper artifacts:
+
+| Backend | Environment | Docs |
+|---|---|---|
+| **IDA** (original) | IDA Pro + IDA Pro MCP | [`ida/SKILL.md`](ida/SKILL.md) |
+| **Ghidra** (custom) | Ghidra GUI or `analyzeHeadless` | [`ghidra/SKILL.md`](ghidra/SKILL.md) |
 
 This is not a one-click decompiler. It helps an agent analyze user-provided VAs or function names and reconstruct C# while preserving strings, switch branches, lambdas, LINQ, async/coroutine state machines, and IL2CPP-specific quirks.
 
-Output quality depends on the AI model and the available context. Restored code is for reference only and should be manually reviewed against IDA, DummyDll stubs, and runtime behavior.
+**Backend selection:** the root [`SKILL.md`](SKILL.md) is a thin dispatcher. It picks exactly one backend — IDA Pro MCP when IDA MCP tools are available, Ghidra when the Ghidra setup is available — and then follows that backend's own `SKILL.md`. The two backends never mix instructions, so neither workflow is diluted.
+
+Output quality depends on the AI model and the available context. Restored code is for reference only and should be manually reviewed against the decompiler output, DummyDll stubs, and runtime behavior.
 
 ## Requirements
 
-- IDA Pro with IDA Pro MCP enabled
-- Il2CppDumper output: `script.json`, `stringliteral.json`, and `DummyDll/`
-- Python 3 for bundled helper scripts
+- **IDA backend:** IDA Pro with IDA Pro MCP enabled.
+- **Ghidra backend:** Ghidra (GUI or `analyzeHeadless`).
+- Both: Il2CppDumper output — `script.json`, `stringliteral.json`, `DummyDll/` or `dump.cs` — and Python 3 for the bundled helper scripts.
+
+## Installation
+
+Install the skill in its own directory under the client's skills root. `SKILL.md` must be directly inside that directory, not one level deeper.
+
+| Mode | Copy into `<skill-directory>/` |
+|---|---|
+| Both backends | Root `SKILL.md`, `ida/`, and `ghidra/` |
+| IDA only | The **contents** of `ida/` |
+| Ghidra only | The **contents** of `ghidra/` |
+
+The two single-backend installations use the original backend files unchanged. The combined installation uses the root dispatcher to select one backend at runtime.
+
+### Installing through an agent
+
+Give your agent this prompt; no local clone is required:
+
+```text
+Install the skill from https://github.com/MetaMikuAI/il2cpp-to-csharp-skill. Before making changes, ask me to choose IDA only, Ghidra only, or both backends. Then detect this client's skills root and install the selected version as one skill in its own directory. For both backends, use the repository root dispatcher (`SKILL.md`, `ida/`, and `ghidra/`). For a single backend, use the contents of that backend directory as the skill root. Do not add an extra repository or backend directory level: `SKILL.md` must be directly inside the installed skill directory. If the destination already exists, inspect it and ask before replacing or merging anything. Verify the final layout and frontmatter, safely remove only the temporary checkout, and tell me whether a restart or new session is needed.
+```
 
 ## Preparation
 
@@ -23,11 +50,18 @@ Output quality depends on the AI model and the available context. Restored code 
 
 ## Usage
 
-Install or copy this folder as a skill named `il2cpp-to-csharp-skill`, then ask the agent to restore one function at a time:
+Install or copy this folder as a skill named `il2cpp-to-csharp`, then ask the agent to restore one function at a time:
 
 ```text
-Use $il2cpp-to-csharp-skill to restore 0x180000000.
+Use $il2cpp-to-csharp to restore 0x180000000.
 IDA Pro MCP is ready. The dnSpy-exported stub project from DummyDll/Assembly-CSharp.dll is at C:\path\to\DummyDllExport, and stringliteral.json is at C:\path\to\stringliteral.json.
+```
+
+Ghidra backend prompt example:
+
+```text
+Use $il2cpp-to-csharp to restore rva:0x123456.
+Ghidra is ready. Project at /path/to/ghidra-projects/game, program UnityFramework, stringliteral.json at /path/to/stringliteral.json.
 ```
 
 ## Example
@@ -601,3 +635,78 @@ private IEnumerator SetLinenear(GameObject doll, UIElementCluster uiElementClust
 }
 ```
 
+### example 3 — Ghidra backend
+
+The same `OverrideSave` method as example 1, queried through the Ghidra backend instead of IDA:
+
+```bash
+python3 scripts/ghidra_query.py query \
+  --project-location /path/to/ghidra-projects \
+  --project-name game \
+  --program UnityFramework \
+  decompile name:ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16__MoveNext
+```
+
+Ghidra decompiler C (abridged from the complete `decompile.c`; class-init guards and builder plumbing elided)
+
+```c
+void ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16__MoveNext
+          (ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16_o *this, MethodInfo *method)
+
+{
+  Cysharp_Threading_Tasks_UniTask_o u__1;
+
+  if (this->fields.__1__state == 0) {
+    u__1 = this->fields.__u__1;
+    this->fields.__u__1 = 0;
+    this->fields.__1__state = -1;
+LAB_00123456:
+    UniTask_Awaiter__GetResult(&u__1);
+    ResultScene_UI_ResultSceneSavePannel__ClosePanel(this->fields.__4__this, 0);
+    this->fields.__1__state = -2;
+    return;
+  }
+  this->fields.__4__this->fields.m_BlockSubPanelCommand = 1;
+  ResultScene_UI_ResultSceneSavePannel__HidePanel(this->fields.__4__this, 0);
+  ResultScene_UI_ResultSceneSavePannel__SavePlayerDataCoreAsync
+            (&u__1, this->fields.__4__this, this->fields.index, 0);
+  if (UniTask_Awaiter__IsCompleted(&u__1) == 0) {
+    this->fields.__1__state = 0;
+    this->fields.__u__1 = u__1;
+    AsyncUniTaskVoidMethodBuilder__AwaitUnsafeOnCompleted(&this->fields.__t__builder, &u__1, this);
+    return;
+  }
+  goto LAB_00123456;
+}
+```
+
+Restored (same method as example 1 — both backends converge on the same source):
+
+```csharp
+private async UniTaskVoid OverrideSave(int index)
+{
+    m_BlockSubPanelCommand = true;
+    HidePanel();
+    await SavePlayerDataCoreAsync(index);
+    ClosePanel();
+}
+```
+
+All names and addresses above are example placeholders, matching the skill's convention; for real work use the current binary's Ghidra output.
+
+## Repository Layout
+
+```
+SKILL.md               Dispatcher: backend selection + shared rules (start here)
+ida/                   IDA backend (original skill, unmodified)
+  SKILL.md             IDA workflow: ida-usage.md, ida-quirks.md, strings.md,
+                       helpers.md, compiler-patterns.md, scripts/
+ghidra/                Ghidra backend (custom skill, unmodified)
+  SKILL.md             Ghidra workflow: ghidra-setup.md, ghidra-query.md,
+                       ghidra-quirks.md, strings.md, helpers.md,
+                       string-formatting.md, lambdas-closures.md, linq-generics.md,
+                       coroutines.md, async.md, runtime-exceptions.md,
+                       runtime-memory.md, scripts/, agents/
+```
+
+Each backend's `scripts/` tree is self-contained; run its scripts from within that backend's directory so relative references stay valid.
