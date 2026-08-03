@@ -630,6 +630,65 @@ private IEnumerator SetLinenear(GameObject doll, UIElementCluster uiElementClust
 }
 ```
 
+### 例 3 — Ghidra 后端
+
+用 Ghidra 后端查询例 1 的同一个 `OverrideSave` 方法（与 IDA 后端最终收敛到同一份源码）：
+
+```bash
+python3 scripts/ghidra_query.py query \
+  --project-location /path/to/ghidra-projects \
+  --project-name game \
+  --program UnityFramework \
+  decompile name:ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16__MoveNext
+```
+
+Ghidra 反编译 C（摘自完整 `decompile.c`，省略类初始化保护和 builder 脚手架）
+
+```c
+void ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16__MoveNext
+          (ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16_o *this, MethodInfo *method)
+
+{
+  Cysharp_Threading_Tasks_UniTask_o u__1;
+
+  if (this->fields.__1__state == 0) {
+    u__1 = this->fields.__u__1;
+    this->fields.__u__1 = 0;
+    this->fields.__1__state = -1;
+LAB_00123456:
+    UniTask_Awaiter__GetResult(&u__1);
+    ResultScene_UI_ResultSceneSavePannel__ClosePanel(this->fields.__4__this, 0);
+    this->fields.__1__state = -2;
+    return;
+  }
+  this->fields.__4__this->fields.m_BlockSubPanelCommand = 1;
+  ResultScene_UI_ResultSceneSavePannel__HidePanel(this->fields.__4__this, 0);
+  ResultScene_UI_ResultSceneSavePannel__SavePlayerDataCoreAsync
+            (&u__1, this->fields.__4__this, this->fields.index, 0);
+  if (UniTask_Awaiter__IsCompleted(&u__1) == 0) {
+    this->fields.__1__state = 0;
+    this->fields.__u__1 = u__1;
+    AsyncUniTaskVoidMethodBuilder__AwaitUnsafeOnCompleted(&this->fields.__t__builder, &u__1, this);
+    return;
+  }
+  goto LAB_00123456;
+}
+```
+
+恢复结果（与例 1 相同 —— 两个后端收敛到同一份源码）：
+
+```csharp
+private async UniTaskVoid OverrideSave(int index)
+{
+    m_BlockSubPanelCommand = true;
+    HidePanel();
+    await SavePlayerDataCoreAsync(index);
+    ClosePanel();
+}
+```
+
+以上名称与地址仅为示例占位，与 skill 的约定一致；真实分析时以当前二进制的 Ghidra 输出为准。
+
 ## 仓库结构
 
 ```

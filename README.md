@@ -630,6 +630,65 @@ private IEnumerator SetLinenear(GameObject doll, UIElementCluster uiElementClust
 }
 ```
 
+### example 3 — Ghidra backend
+
+The same `OverrideSave` method as example 1, queried through the Ghidra backend instead of IDA:
+
+```bash
+python3 scripts/ghidra_query.py query \
+  --project-location /path/to/ghidra-projects \
+  --project-name game \
+  --program UnityFramework \
+  decompile name:ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16__MoveNext
+```
+
+Ghidra decompiler C (abridged from the complete `decompile.c`; class-init guards and builder plumbing elided)
+
+```c
+void ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16__MoveNext
+          (ResultScene_UI_ResultSceneSavePannel__OverrideSave_d__16_o *this, MethodInfo *method)
+
+{
+  Cysharp_Threading_Tasks_UniTask_o u__1;
+
+  if (this->fields.__1__state == 0) {
+    u__1 = this->fields.__u__1;
+    this->fields.__u__1 = 0;
+    this->fields.__1__state = -1;
+LAB_00123456:
+    UniTask_Awaiter__GetResult(&u__1);
+    ResultScene_UI_ResultSceneSavePannel__ClosePanel(this->fields.__4__this, 0);
+    this->fields.__1__state = -2;
+    return;
+  }
+  this->fields.__4__this->fields.m_BlockSubPanelCommand = 1;
+  ResultScene_UI_ResultSceneSavePannel__HidePanel(this->fields.__4__this, 0);
+  ResultScene_UI_ResultSceneSavePannel__SavePlayerDataCoreAsync
+            (&u__1, this->fields.__4__this, this->fields.index, 0);
+  if (UniTask_Awaiter__IsCompleted(&u__1) == 0) {
+    this->fields.__1__state = 0;
+    this->fields.__u__1 = u__1;
+    AsyncUniTaskVoidMethodBuilder__AwaitUnsafeOnCompleted(&this->fields.__t__builder, &u__1, this);
+    return;
+  }
+  goto LAB_00123456;
+}
+```
+
+Restored (same method as example 1 — both backends converge on the same source):
+
+```csharp
+private async UniTaskVoid OverrideSave(int index)
+{
+    m_BlockSubPanelCommand = true;
+    HidePanel();
+    await SavePlayerDataCoreAsync(index);
+    ClosePanel();
+}
+```
+
+All names and addresses above are example placeholders, matching the skill's convention; for real work use the current binary's Ghidra output.
+
 ## Repository Layout
 
 ```
