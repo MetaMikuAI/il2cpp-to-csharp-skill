@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run bounded Ghidra queries without returning headless noise to the model."""
+"""Run Ghidra queries, preserve complete artifacts, and emit complete results."""
 
 from __future__ import annotations
 
@@ -17,27 +17,21 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-DEFAULT_LIST_LIMIT = 50
-DEFAULT_INLINE_LINES = 120
-DEFAULT_READ_LINES = 120
-HARD_READ_LIMIT = 240
-HARD_BATCH_LIMIT = 32
 QUERY_BEGIN = "=== GHIDRA_QUERY_BEGIN ==="
 QUERY_END = "=== GHIDRA_QUERY_END ==="
 SCRIPT_PREFIX = "GhidraQuery.java>"
 STRING_RE = re.compile(r"\bStringLiteral_(\d+)\b")
 CONTROL_RE = re.compile(r"^(else\s+if|if|switch|case|default|for|while|do)\b")
-TRUNCATION_RE = re.compile(r"^<truncated(?:; total=(\d+))?>$")
 SECTION_BY_ACTION = {"disassemble": "disassembly"}
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Capture Ghidra output as artifacts and emit a compact result."
+        description="Capture Ghidra output as artifacts and emit the complete result."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    query = subparsers.add_parser("query", help="Run one bounded Ghidra query.")
+    query = subparsers.add_parser("query", help="Run one Ghidra query.")
     query.add_argument("action", choices=(
         "info", "decompile", "callees", "callers", "xrefs", "disassemble"
     ))
@@ -49,17 +43,13 @@ def build_parser() -> argparse.ArgumentParser:
     query.add_argument("--script-path", type=Path, default=Path(__file__).resolve().parent)
     query.add_argument("--artifacts", type=Path)
     query.add_argument("--timeout", type=positive_int, default=120)
-    query.add_argument("--limit", type=positive_int, default=DEFAULT_LIST_LIMIT)
-    query.add_argument("--inline-max-lines", type=nonnegative_int,
-                       default=DEFAULT_INLINE_LINES)
     query.add_argument("--no-inline", action="store_true")
-    query.add_argument("--preview-items", type=positive_int, default=20)
     query.add_argument("--process-timeout", type=positive_int, default=600)
     query.add_argument("--no-cache", action="store_true",
                        help="Bypass the content-addressed successful-query cache.")
 
     batch = subparsers.add_parser(
-        "batch", help="Run bounded queries for several exact selectors in one Ghidra launch."
+        "batch", help="Run queries for several exact selectors in one Ghidra launch."
     )
     batch.add_argument("action", choices=(
         "info", "decompile", "callees", "callers", "xrefs", "disassemble"
@@ -73,25 +63,20 @@ def build_parser() -> argparse.ArgumentParser:
     batch.add_argument("--script-path", type=Path, default=Path(__file__).resolve().parent)
     batch.add_argument("--artifacts", type=Path)
     batch.add_argument("--timeout", type=positive_int, default=120)
-    batch.add_argument("--limit", type=positive_int, default=DEFAULT_LIST_LIMIT)
-    batch.add_argument("--preview-items", type=positive_int, default=10)
     batch.add_argument("--process-timeout", type=positive_int, default=1800)
-    batch.add_argument("--max-items", type=positive_int, default=16)
     batch.add_argument("--no-cache", action="store_true")
 
-    read = subparsers.add_parser("read", help="Read a bounded slice of a saved artifact.")
+    read = subparsers.add_parser("read", help="Read a saved artifact without hidden truncation.")
     read.add_argument("artifact", type=Path, nargs="?")
     read.add_argument("--index", type=Path,
                       help="Evidence index used to resolve the artifact or a semantic block.")
     selection = read.add_mutually_exclusive_group()
     selection.add_argument("--lines", help="One-based inclusive range, for example 1:120.")
-    selection.add_argument("--around", help="Show one bounded window around a literal substring.")
+    selection.add_argument("--around", help="Show a requested window around a literal substring.")
     selection.add_argument("--block", help="Semantic block ID from index.json, for example B0002.")
     read.add_argument("--context", type=nonnegative_int, default=20)
     read.add_argument("--block-context", type=nonnegative_int, default=2)
     read.add_argument("--occurrence", type=positive_int, default=1)
-    read.add_argument("--max-lines", type=positive_int, default=DEFAULT_READ_LINES)
-    read.add_argument("--max-line-chars", type=positive_int, default=4000)
     return parser
 
 
@@ -210,10 +195,7 @@ def query_cache_key(args: argparse.Namespace, project_location: Path, launcher: 
         "selector": getattr(args, "selector", None),
         "selectors": getattr(args, "selectors", None),
         "timeout": args.timeout,
-        "limit": args.limit,
-        "inline_max_lines": getattr(args, "inline_max_lines", None),
         "no_inline": getattr(args, "no_inline", None),
-        "preview_items": args.preview_items,
         "launcher": str(launcher),
         "launcher_size": launcher_stat.st_size,
         "launcher_mtime_ns": launcher_stat.st_mtime_ns,
@@ -294,27 +276,10 @@ def parse_query_block(lines: Iterable[str]) -> tuple[dict[str, str], list[str], 
     return metadata, aliases, sections
 
 
-def summarize_section(items: list[str], preview_limit: int) -> dict[str, Any]:
-    values: list[str] = []
-    source_truncated = False
-    reported_total: int | None = None
-    for item in items:
-        marker = TRUNCATION_RE.fullmatch(item)
-        if marker is None:
-            values.append(item)
-            continue
-        source_truncated = True
-        if marker.group(1) is not None:
-            reported_total = int(marker.group(1))
-
-    preview_truncated = len(values) > preview_limit
+def summarize_section(items: list[str]) -> dict[str, Any]:
     return {
-        "count": reported_total if reported_total is not None else len(values),
-        "returned_count": len(values),
-        "count_exact": reported_total is not None or not source_truncated,
-        "preview": values[:preview_limit],
-        "truncated": source_truncated or preview_truncated,
-        "source_truncated": source_truncated,
+        "count": len(items),
+        "items": items,
     }
 
 
@@ -334,7 +299,7 @@ def lexical_index(c_code: str) -> dict[str, Any]:
             controls.append({
                 "line": number,
                 "kind": control.group(1).replace(" ", "_"),
-                "preview": stripped[:240],
+                "text": stripped,
             })
         if "->vtable" in line or re.search(
             r"\(\*\*?\(code \*\*\)|\(\*[A-Za-z_][A-Za-z0-9_]*\)\s*\(", line
@@ -399,7 +364,7 @@ def semantic_index(path: Path, c_line_count: int,
                 raise ValueError(f"semantic row {row_number} has {len(fields)} fields")
             block_id, kind, depth_text, parent, start_text, end_text, \
                 min_address, max_address, header = fields
-            if not re.fullmatch(r"B\d{4}", block_id) or block_id in known_ids:
+            if not re.fullmatch(r"B\d+", block_id) or block_id in known_ids:
                 raise ValueError(f"semantic row {row_number} has an invalid block ID")
             depth, start, end = int(depth_text), int(start_text), int(end_text)
             if depth < 0 or start <= 0 or end < start or end > c_line_count:
@@ -430,20 +395,6 @@ def semantic_index(path: Path, c_line_count: int,
     except (OSError, UnicodeError, ValueError) as error:
         unavailable["reason"] = f"Semantic artifact rejected: {error}"
         return unavailable
-
-
-def semantic_preview(index: dict[str, Any], limit: int) -> list[dict[str, Any]]:
-    if index.get("available") is not True:
-        return []
-    return [
-        {
-            "id": block["id"],
-            "kind": block["kind"],
-            "lines": block["lines"],
-            "header": block["header"][:160],
-        }
-        for block in index["blocks"][:min(limit, 8)]
-    ]
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -492,15 +443,34 @@ def emit_summary(summary: dict[str, Any], artifact_dir: Path, cache_hit: bool) -
     artifacts = summary.get("artifacts")
     if isinstance(decompile, dict) and decompile.get("inlined") is True \
             and isinstance(artifacts, dict):
-        c_name = artifacts.get("decompile")
-        if isinstance(c_name, str):
-            c_path = artifact_dir / c_name
-            if c_path.is_file():
-                c_code = c_path.read_text(encoding="utf-8", errors="replace")
-                print("=== DECOMPILE_BEGIN ===")
-                print(c_code, end="" if c_code.endswith("\n") else "\n")
-                print("=== DECOMPILE_END ===")
+        emit_decompile_artifact(artifact_dir, artifacts.get("decompile"), "DECOMPILE")
+
+    items = summary.get("items")
+    if isinstance(items, list):
+        for position, item in enumerate(items):
+            if not isinstance(item, dict) or not isinstance(item.get("decompile"), dict):
+                continue
+            item_artifacts = item.get("artifacts")
+            if not isinstance(item_artifacts, dict):
+                continue
+            item_index = item.get("index", position)
+            emit_decompile_artifact(
+                artifact_dir, item_artifacts.get("decompile"),
+                f"DECOMPILE_{item_index}",
+            )
     return 0
+
+
+def emit_decompile_artifact(artifact_dir: Path, name: Any, label: str) -> None:
+    if not isinstance(name, str):
+        return
+    path = artifact_dir / name
+    if not path.is_file():
+        return
+    c_code = path.read_text(encoding="utf-8", errors="replace")
+    print(f"=== {label}_BEGIN ===")
+    print(c_code, end="" if c_code.endswith("\n") else "\n")
+    print(f"=== {label}_END ===")
 
 
 def finalize_success(summary: dict[str, Any], run_dir: Path, cache_dir: Path | None,
@@ -513,7 +483,7 @@ def finalize_success(summary: dict[str, Any], run_dir: Path, cache_dir: Path | N
         "enabled": True,
         "hit": False,
         "key": cache_key,
-        "project_fingerprint": fingerprint[:16] if fingerprint else None,
+        "project_fingerprint": fingerprint,
         "stored": True,
     }
     summary["artifact_dir"] = str(cache_dir)
@@ -538,22 +508,8 @@ def finalize_success(summary: dict[str, Any], run_dir: Path, cache_dir: Path | N
     return emit_summary(summary, run_dir, False)
 
 
-def tail_lines(text: str, limit: int = 24) -> list[str]:
-    lines = [normalize_log_line(line) for line in text.splitlines() if line.strip()]
-    signals = (
-        "error", "exception", "failed", "failure", "timeout", "no function",
-        "bad instruction", "not found", "could not", "incomplete",
-    )
-    interesting = [
-        line for line in lines
-        if not line.lstrip().startswith("at ")
-        and any(signal in line.lower() for signal in signals)
-    ]
-    selected = interesting if interesting else [
-        line for line in lines
-        if not line.startswith("INFO ") and not line.lstrip().startswith("at ")
-    ]
-    return selected[-min(limit, 12):]
+def normalized_log_lines(text: str) -> list[str]:
+    return [normalize_log_line(line) for line in text.splitlines()]
 
 
 def fail(message: str, *, log_path: Path | None = None, log_text: str = "",
@@ -564,7 +520,7 @@ def fail(message: str, *, log_path: Path | None = None, log_text: str = "",
     if log_path is not None:
         result["log"] = str(log_path)
     if log_text:
-        result["tail"] = tail_lines(log_text)
+        result["log_output"] = normalized_log_lines(log_text)
     print(compact_json(result))
     return 1
 
@@ -602,10 +558,9 @@ def run_query(args: argparse.Namespace) -> int:
     c_path = run_dir / "decompile.c"
     semantic_path = run_dir / "semantic.tsv"
     java_action = "export" if args.action == "decompile" else args.action
-    final_number = args.timeout if args.action == "decompile" else args.limit
-    script_args = [java_action, args.selector, str(final_number)]
+    script_args = [java_action, args.selector]
     if args.action == "decompile":
-        script_args.extend((str(c_path), str(semantic_path)))
+        script_args.extend((str(args.timeout), str(c_path), str(semantic_path)))
 
     command = [
         str(launcher), str(project_location), args.project_name,
@@ -655,11 +610,7 @@ def run_query(args: argparse.Namespace) -> int:
         "parameter_count": int(metadata["parameter_count"])
             if metadata.get("parameter_count", "").isdigit() else None,
         "thunk": metadata.get("thunk") == "true",
-        "aliases": {
-            "count": len(aliases),
-            "preview": aliases[:min(args.preview_items, 20)],
-            "truncated": len(aliases) > min(args.preview_items, 20),
-        },
+        "aliases": {"count": len(aliases), "items": aliases},
         "artifact_dir": str(run_dir),
         "artifacts": {"result": result_path.name, "log": log_path.name},
     }
@@ -668,8 +619,7 @@ def run_query(args: argparse.Namespace) -> int:
         if args.action != "info":
             section_name = SECTION_BY_ACTION.get(args.action, args.action)
             items = sections.get(section_name, [])
-            preview_limit = min(args.preview_items, 50)
-            common["result"] = summarize_section(items, preview_limit)
+            common["result"] = summarize_section(items)
         return finalize_success(common, run_dir, cache_dir, cache_key, fingerprint)
 
     if not c_path.is_file() or metadata.get("decompile_complete") != "true":
@@ -704,22 +654,15 @@ def run_query(args: argparse.Namespace) -> int:
         "lines": line_count,
         "bytes": len(c_bytes),
         "sha256": manifest["decompile"]["sha256"],
-        "inlined": not args.no_inline and line_count <= args.inline_max_lines,
+        "inlined": not args.no_inline,
     }
     common["artifacts"].update({"decompile": c_path.name, "index": index_path.name})
     if semantic_path.is_file():
         common["artifacts"]["semantic"] = semantic_path.name
     common["evidence"] = {
-        "direct_callee_count": len(callees),
-        "direct_callees_preview": callees[:min(args.preview_items, 20)],
-        "string_labels": index["string_labels"][:min(args.preview_items, 20)],
-        "string_label_count": len(index["string_labels"]),
-        "control_counts": index["control_counts"],
-        "possible_indirect_call_lines":
-            index["possible_indirect_call_lines"][:min(args.preview_items, 20)],
-        "semantic_available": semantic["available"],
-        "semantic_block_count": semantic["block_count"],
-        "semantic_blocks_preview": semantic_preview(semantic, args.preview_items),
+        "direct_callees": callees,
+        "lexical_index": index,
+        "semantic_index": semantic,
     }
     if semantic.get("available") and len(semantic["blocks"]) > 1:
         common["read_hint"] = {
@@ -727,18 +670,12 @@ def run_query(args: argparse.Namespace) -> int:
             "block": semantic["blocks"][1]["id"],
         }
     else:
-        common["read_hint"] = {"artifact": c_path.name, "lines": f"1:{DEFAULT_READ_LINES}"}
+        common["read_hint"] = {"artifact": c_path.name}
     return finalize_success(common, run_dir, cache_dir, cache_key, fingerprint)
 
 
 def run_batch(args: argparse.Namespace) -> int:
     args.selectors = list(dict.fromkeys(args.selectors))
-    allowed = min(args.max_items, HARD_BATCH_LIMIT)
-    if len(args.selectors) > allowed:
-        return fail(
-            f"batch has {len(args.selectors)} selectors; limit is {allowed} "
-            f"(hard maximum {HARD_BATCH_LIMIT})"
-        )
 
     project_location = args.project_location.expanduser().resolve()
     script_path = args.script_path.expanduser().resolve()
@@ -779,14 +716,13 @@ def run_batch(args: argparse.Namespace) -> int:
     for index, selector in enumerate(args.selectors):
         result_paths.append(run_dir / f"result-{index:03d}.txt")
         java_action = "export" if args.action == "decompile" else args.action
-        final_number = args.timeout if args.action == "decompile" else args.limit
-        script_args = [java_action, selector, str(final_number)]
+        script_args = [java_action, selector]
         if args.action == "decompile":
             c_path = run_dir / f"decompile-{index:03d}.c"
             semantic_path = run_dir / f"semantic-{index:03d}.tsv"
             c_paths.append(c_path)
             semantic_paths.append(semantic_path)
-            script_args.extend((str(c_path), str(semantic_path)))
+            script_args.extend((str(args.timeout), str(c_path), str(semantic_path)))
         else:
             c_paths.append(None)
             semantic_paths.append(None)
@@ -821,7 +757,6 @@ def run_batch(args: argparse.Namespace) -> int:
         return fail(reason, log_path=log_path, log_text=log_text, returncode=returncode)
 
     items: list[dict[str, Any]] = []
-    preview_limit = min(args.preview_items, 10)
     for index, (selector, block, result_path, c_path, semantic_path) in enumerate(
             zip(args.selectors, blocks, result_paths, c_paths, semantic_paths)):
         result_path.write_text("\n".join(block) + "\n", encoding="utf-8")
@@ -834,18 +769,14 @@ def run_batch(args: argparse.Namespace) -> int:
             "entry": metadata.get("entry"),
             "body": [metadata.get("body_min"), metadata.get("body_max")],
             "thunk": metadata.get("thunk") == "true",
-            "aliases": {
-                "count": len(aliases),
-                "preview": aliases[:min(preview_limit, 5)],
-                "truncated": len(aliases) > min(preview_limit, 5),
-            },
+            "aliases": {"count": len(aliases), "items": aliases},
             "artifacts": {"result": result_path.name},
         }
         if args.action != "decompile":
             if args.action != "info":
                 section_name = SECTION_BY_ACTION.get(args.action, args.action)
                 values = sections.get(section_name, [])
-                item["result"] = summarize_section(values, preview_limit)
+                item["result"] = summarize_section(values)
             items.append(item)
             continue
 
@@ -891,16 +822,9 @@ def run_batch(args: argparse.Namespace) -> int:
             if key != "artifact"
         }
         item["evidence"] = {
-            "direct_callee_count": len(callees),
-            "direct_callees_preview": callees[:preview_limit],
-            "string_label_count": len(lexical["string_labels"]),
-            "string_labels": lexical["string_labels"][:preview_limit],
-            "control_counts": lexical["control_counts"],
-            "possible_indirect_call_lines":
-                lexical["possible_indirect_call_lines"][:preview_limit],
-            "semantic_available": semantic["available"],
-            "semantic_block_count": semantic["block_count"],
-            "semantic_blocks_preview": semantic_preview(semantic, min(preview_limit, 5)),
+            "direct_callees": callees,
+            "lexical_index": lexical,
+            "semantic_index": semantic,
         }
         items.append(item)
 
@@ -983,7 +907,6 @@ def run_read(args: argparse.Namespace) -> int:
             return fail("Artifact SHA-256 does not match the evidence index")
     text = artifact.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
-    hard_limit = min(args.max_lines, HARD_READ_LIMIT)
     matches: list[int] = []
 
     try:
@@ -1001,22 +924,18 @@ def run_read(args: argparse.Namespace) -> int:
             center = matches[args.occurrence - 1]
             start = max(1, center - args.context)
             end = min(len(lines), center + args.context)
+        elif args.lines is not None:
+            start, end = parse_line_range(args.lines, len(lines))
         else:
-            specification = args.lines or f"1:{DEFAULT_READ_LINES}"
-            start, end = parse_line_range(specification, len(lines))
+            start, end = ((1, len(lines)) if lines else (0, 0))
     except ValueError as error:
         return fail(str(error))
 
-    requested_end = end
-    if end - start + 1 > hard_limit:
-        end = start + hard_limit - 1
     summary = {
         "ok": True,
         "artifact": str(artifact),
         "total_lines": len(lines),
         "range": [start, end],
-        "requested_end": requested_end,
-        "truncated": end < requested_end,
         "match_count": len(matches) if args.around is not None else None,
         "occurrence": args.occurrence if args.around is not None else None,
     }
@@ -1029,16 +948,10 @@ def run_read(args: argparse.Namespace) -> int:
             "lines": selected_block.get("lines"),
             "header": selected_block.get("header"),
         }
-        summary["block_truncated"] = (
-            end < selected_block["lines"][1] or start > selected_block["lines"][0]
-        )
     print(compact_json(summary))
     print("=== ARTIFACT_SLICE_BEGIN ===")
     for number in range(start, end + 1):
-        line = lines[number - 1]
-        if len(line) > args.max_line_chars:
-            line = line[:args.max_line_chars] + " <line-truncated>"
-        print(f"{number:06d}|{line}")
+        print(f"{number:06d}|{lines[number - 1]}")
     print("=== ARTIFACT_SLICE_END ===")
     return 0
 

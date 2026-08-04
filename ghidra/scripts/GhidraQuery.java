@@ -36,7 +36,6 @@ import ghidra.program.model.symbol.Symbol;
 public class GhidraQuery extends GhidraScript {
 
     private static final int DEFAULT_TIMEOUT_SECONDS = 120;
-    private static final int DEFAULT_LIMIT = 50;
 
     @Override
     public void run() throws Exception {
@@ -44,7 +43,7 @@ public class GhidraQuery extends GhidraScript {
         if (args.length < 2) {
             throw new IllegalArgumentException(
                 "Usage: GhidraQuery.java <info|decompile|export|callees|callers|xrefs|disassemble> " +
-                "<va:0x...|rva:0x...|name:exact-symbol> [timeout-or-limit] " +
+                "<va:0x...|rva:0x...|name:exact-symbol> [timeout-for-decompile] " +
                 "[artifact-path-for-export] [semantic-path-for-export]");
         }
 
@@ -63,7 +62,7 @@ public class GhidraQuery extends GhidraScript {
         printSymbols(target);
 
         if ("xrefs".equals(action)) {
-            printXrefs(target, parseOptionalInt(args, 2, DEFAULT_LIMIT));
+            printXrefs(target);
         }
         else {
             if (function == null) {
@@ -83,19 +82,16 @@ public class GhidraQuery extends GhidraScript {
                     }
                     exportDecompile(function, parseOptionalInt(args, 2, DEFAULT_TIMEOUT_SECONDS),
                         args[3], args.length > 4 ? args[4] : args[3] + ".semantic.tsv");
-                    printFunctions("CALLEES", function.getCalledFunctions(monitor),
-                        Integer.MAX_VALUE);
+                    printFunctions("CALLEES", function.getCalledFunctions(monitor));
                     break;
                 case "callees":
-                    printFunctions("CALLEES", function.getCalledFunctions(monitor),
-                        parseOptionalInt(args, 2, DEFAULT_LIMIT));
+                    printFunctions("CALLEES", function.getCalledFunctions(monitor));
                     break;
                 case "callers":
-                    printFunctions("CALLERS", function.getCallingFunctions(monitor),
-                        parseOptionalInt(args, 2, DEFAULT_LIMIT));
+                    printFunctions("CALLERS", function.getCallingFunctions(monitor));
                     break;
                 case "disassemble":
-                    disassemble(target, function, parseOptionalInt(args, 2, DEFAULT_LIMIT));
+                    disassemble(target, function);
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown action: " + action);
@@ -336,8 +332,7 @@ public class GhidraQuery extends GhidraScript {
         if (isControlHeader(header) || startLine <= 1) {
             return new HeaderInfo(startLine, header);
         }
-        int firstCandidate = Math.max(1, startLine - 24);
-        for (int lineNumber = startLine - 1; lineNumber >= firstCandidate; lineNumber--) {
+        for (int lineNumber = startLine - 1; lineNumber >= 1; lineNumber--) {
             String text = PrettyPrinter.getText(lines.get(lineNumber - 1)).trim();
             if (isControlHeader(text)) {
                 StringBuilder joined = new StringBuilder();
@@ -398,8 +393,7 @@ public class GhidraQuery extends GhidraScript {
     }
 
     private String escapeTsv(String text) {
-        String bounded = text.length() > 240 ? text.substring(0, 240) : text;
-        return bounded.replace("\\", "\\\\").replace("\t", "\\t")
+        return text.replace("\\", "\\\\").replace("\t", "\\t")
             .replace("\r", "\\r").replace("\n", "\\n");
     }
 
@@ -489,59 +483,41 @@ public class GhidraQuery extends GhidraScript {
         return hex.toString();
     }
 
-    private void printFunctions(String heading, Set<Function> functions, int limit) {
+    private void printFunctions(String heading, Set<Function> functions) {
         List<Function> sorted = new ArrayList<>(functions);
         sorted.sort(Comparator.comparing(Function::getEntryPoint));
         println("=== " + heading + "_BEGIN ===");
-        int count = 0;
         for (Function function : sorted) {
-            if (count >= limit) {
-                println("<truncated; total=" + sorted.size() + ">");
-                break;
-            }
             println(function.getEntryPoint() + " " + function.getName(true));
-            count++;
         }
         println("=== " + heading + "_END ===");
     }
 
-    private void printXrefs(Address target, int limit) {
+    private void printXrefs(Address target) {
         ReferenceIterator references = currentProgram.getReferenceManager().getReferencesTo(target);
         println("=== XREFS_BEGIN ===");
-        int count = 0;
         while (references.hasNext()) {
             Reference reference = references.next();
-            if (count >= limit) {
-                println("<truncated>");
-                break;
-            }
             Address from = reference.getFromAddress();
             Function owner = getFunctionContaining(from);
             println(from + " " + reference.getReferenceType() + " " +
                 (owner == null ? "<no-function>" : owner.getName(true)));
-            count++;
         }
         println("=== XREFS_END ===");
     }
 
-    private void disassemble(Address target, Function function, int limit) {
+    private void disassemble(Address target, Function function) {
         Instruction containing = currentProgram.getListing().getInstructionContaining(target);
         Address start = containing == null ? target : containing.getAddress();
         InstructionIterator instructions =
             currentProgram.getListing().getInstructions(start, true);
         println("=== DISASSEMBLY_BEGIN ===");
-        int count = 0;
         while (instructions.hasNext()) {
             Instruction instruction = instructions.next();
             if (!function.getBody().contains(instruction.getAddress())) {
                 break;
             }
-            if (count >= limit) {
-                println("<truncated>");
-                break;
-            }
             println(instruction.getAddress() + "  " + instruction);
-            count++;
         }
         println("=== DISASSEMBLY_END ===");
     }

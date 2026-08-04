@@ -56,7 +56,7 @@ Do not compensate by blindly rebasing until one known method and one known metad
 
 Identical Code Folding can map many C# methods to one native body. Ghidra has one primary function symbol but can retain multiple labels at the entry.
 
-`ghidra_query.py query ... info` returns a bounded alias preview and saves the complete normalized result as an artifact. Inspect that artifact when aliases are truncated. The displayed function name is not proof of source ownership.
+`ghidra_query.py query ... info` returns every alias and saves the complete normalized result as an artifact. The displayed function name is not proof of source ownership.
 
 Common folded shapes:
 

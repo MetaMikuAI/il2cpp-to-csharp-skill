@@ -701,7 +701,7 @@ SKILL.md               Dispatcher: backend selection + shared rules (start here)
 ida/                   IDA backend (original skill, unmodified)
   SKILL.md             IDA workflow: ida-usage.md, ida-quirks.md, strings.md,
                        helpers.md, compiler-patterns.md, scripts/
-ghidra/                Ghidra backend (custom skill, unmodified)
+ghidra/                Ghidra backend (custom skill)
   SKILL.md             Ghidra workflow: ghidra-setup.md, ghidra-query.md,
                        ghidra-quirks.md, strings.md, helpers.md,
                        string-formatting.md, lambdas-closures.md, linq-generics.md,

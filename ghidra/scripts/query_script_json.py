@@ -48,7 +48,6 @@ def build_parser() -> argparse.ArgumentParser:
     selector.add_argument("--name", help="Exact case-sensitive ScriptMethod name")
     selector.add_argument("--contains", help="Case-insensitive method-name fragment")
     selector.add_argument("--rva", type=parse_int, help="Exact ScriptMethod RVA")
-    parser.add_argument("--limit", type=int, default=50, help="Maximum rows to print")
     return parser
 
 
@@ -57,9 +56,6 @@ def main() -> int:
     json_path = resolve_path(args.json_path)
     if not json_path.is_file():
         raise SystemExit(f"error: script.json not found: {json_path}")
-    if args.limit < 1:
-        raise SystemExit("error: --limit must be positive")
-
     with json_path.open("r", encoding="utf-8") as handle:
         root = json.load(handle)
     methods = root.get("ScriptMethod", [])
@@ -81,7 +77,7 @@ def main() -> int:
             continue
         matches.append(record)
 
-    for record in matches[: args.limit]:
+    for record in matches:
         address = address_of(record)
         rva = "<invalid>" if address is None else f"0x{address:X}"
         name = str(record.get("Name", ""))
@@ -90,8 +86,6 @@ def main() -> int:
         if signature:
             print(f"{'':18} {signature}")
 
-    if len(matches) > args.limit:
-        print(f"<truncated: {len(matches)} matches; limit={args.limit}>", file=sys.stderr)
     if not matches:
         print("no matches", file=sys.stderr)
         return 1

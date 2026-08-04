@@ -11,9 +11,7 @@ Locate `MoveNext` by:
 1. Reading the state-machine TypeInfo from the wrapper.
 2. Searching `script.json` for the exact `_d__N$$MoveNext` name.
 3. Querying the matched RVA with the artifact-first wrapper.
-4. Using bounded xrefs on the exact TypeInfo only when metadata search is insufficient.
-
-Do not enumerate all `MoveNext` functions.
+4. Using xrefs on the exact TypeInfo when metadata search is insufficient.
 
 ## Core Fields
 
@@ -63,4 +61,4 @@ Keep LINQ inside the scope where its native calls occur. Read [linq-generics.md]
 
 ## Completeness
 
-For a large `MoveNext`, use the artifact index to locate state branches, then read all behavior-relevant slices. The index and callees are navigation only. If any state region is missing or decompilation fails after one retry, use the GUI and obtain complete C.
+For a large `MoveNext`, inspect the complete emitted C and use the artifact index to locate state branches. The index and callees are navigation only. If any state region is missing or decompilation fails after one retry, use the GUI and obtain complete C.

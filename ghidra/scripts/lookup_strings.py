@@ -19,7 +19,6 @@ from typing import Any
 
 STRING_LITERAL_RE = re.compile(r"\bStringLiteral_(\d+)\b")
 ENV_PATHS = ("IL2CPP_STRINGLITERAL_JSON", "LOOKUP_STRINGS_JSON_PATH")
-DEFAULT_RESULT_LIMIT = 100
 
 
 class LookupErrorWithMessage(Exception):
@@ -32,13 +31,6 @@ def parse_int(text: str) -> int:
         return int(value, 0)
     except ValueError as exc:
         raise argparse.ArgumentTypeError(f"invalid integer: {text!r}") from exc
-
-
-def positive_int(text: str) -> int:
-    value = int(text)
-    if value <= 0:
-        raise argparse.ArgumentTypeError("must be positive")
-    return value
 
 
 def normalize_rva(value: int) -> str:
@@ -173,12 +165,6 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print only resolved string values.",
     )
-    parser.add_argument(
-        "--limit",
-        type=positive_int,
-        default=DEFAULT_RESULT_LIMIT,
-        help=f"Reject more than this many results (default: {DEFAULT_RESULT_LIMIT}).",
-    )
     return parser
 
 
@@ -223,12 +209,6 @@ def run(args: argparse.Namespace) -> int:
 
     if not label_ids and not rvas:
         raise LookupErrorWithMessage("provide labels, --stdin, --from-file, --rva, or --va")
-
-    result_count = len(label_ids) + len(rvas)
-    if result_count > args.limit:
-        raise LookupErrorWithMessage(
-            f"{result_count} results exceed --limit {args.limit}; narrow the input or raise the limit"
-        )
 
     for label_id in label_ids:
         address, value = lookup_by_label(entries, label_id)
