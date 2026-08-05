@@ -106,9 +106,9 @@ Use raw `GhidraQuery.java` only to debug the wrapper or when the artifact path i
 Prefer metadata lookup before querying Ghidra:
 
 ```bash
-python3 scripts/query_script_json.py \
+python3 ../scripts/query_script_json.py \
   --json-path /path/to/script.json --contains ExampleMethod
-python3 scripts/query_script_json.py \
+python3 ../scripts/query_script_json.py \
   --json-path /path/to/script.json --rva 0x123456
 ```
 

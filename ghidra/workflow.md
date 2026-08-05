@@ -36,7 +36,7 @@ python3 scripts/ghidra_query.py query \
 
 Use `va:0x...`, `rva:0x...`, or `name:Exact.Symbol` selectors and quote shell-sensitive names. Run the script with `--help` for current options.
 
-1. Map a method name with `scripts/query_script_json.py` when needed.
+1. Map a method name with `../scripts/query_script_json.py` when needed.
 2. Query `info` when ownership, aliases, ICF folding, or address coordinates are uncertain.
 3. Choose `--timeout` from the method's scale, decompile the target, and verify `complete: true`. Use the default for ordinary methods and several minutes for a large dispatcher, coroutine, or async state machine; raise `--process-timeout` with it when needed.
 4. Inspect strings, computed calls, enum cascades, delegate targets, and helpers visible in the body.

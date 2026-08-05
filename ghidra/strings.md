@@ -7,7 +7,7 @@ Read this file when `StringLiteral_N` appears in the current decompile. Resolve 
 Use the matching Il2CppDumper `stringliteral.json`:
 
 ```bash
-python3 scripts/lookup_strings.py \
+python3 ../scripts/lookup_strings.py \
   --json-path /path/to/stringliteral.json \
   StringLiteral_8179 StringLiteral_17614
 ```
@@ -15,7 +15,7 @@ python3 scripts/lookup_strings.py \
 Resolve every label from a saved decompile in one call:
 
 ```bash
-python3 scripts/lookup_strings.py \
+python3 ../scripts/lookup_strings.py \
   --json-path /path/to/stringliteral.json \
   --from-file /path/to/decompile.c
 ```
@@ -23,8 +23,8 @@ python3 scripts/lookup_strings.py \
 Alternative inputs:
 
 ```bash
-python3 scripts/lookup_strings.py --json-path /path/to/stringliteral.json --rva 0x4222200
-python3 scripts/lookup_strings.py --json-path /path/to/stringliteral.json \
+python3 ../scripts/lookup_strings.py --json-path /path/to/stringliteral.json --rva 0x4222200
+python3 ../scripts/lookup_strings.py --json-path /path/to/stringliteral.json \
   --base 0x180000000 --va 0x184222200
 ```
 

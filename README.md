@@ -6,12 +6,12 @@ A skill for restoring readable C# from Unity IL2CPP binaries. It ships **two ind
 
 | Backend | Environment | Docs |
 |---|---|---|
-| **IDA** (original) | IDA Pro + IDA Pro MCP | [`ida/SKILL.md`](ida/SKILL.md) |
-| **Ghidra** (custom) | Ghidra GUI or `analyzeHeadless` | [`ghidra/SKILL.md`](ghidra/SKILL.md) |
+| **IDA** | IDA Pro + IDA Pro MCP | [`ida/workflow.md`](ida/workflow.md) |
+| **Ghidra** | Ghidra GUI or `analyzeHeadless` | [`ghidra/workflow.md`](ghidra/workflow.md) |
 
 This is not a one-click decompiler. It helps an agent analyze user-provided VAs or function names and reconstruct C# while preserving strings, switch branches, lambdas, LINQ, async/coroutine state machines, and IL2CPP-specific quirks.
 
-**Backend selection:** the root [`SKILL.md`](SKILL.md) is a thin dispatcher. It picks exactly one backend — IDA Pro MCP when IDA MCP tools are available, Ghidra when the Ghidra setup is available — and then follows that backend's own `SKILL.md`. The two backends never mix instructions, so neither workflow is diluted.
+**Backend selection:** the root [`SKILL.md`](SKILL.md) is a thin dispatcher. It asks the user to specify which backend to use, then follows that backend's `workflow.md`. The two backends never mix instructions, so neither workflow is diluted.
 
 Output quality depends on the AI model and the available context. Restored code is for reference only and should be manually reviewed against the decompiler output, DummyDll stubs, and runtime behavior.
 
@@ -23,22 +23,20 @@ Output quality depends on the AI model and the available context. Restored code 
 
 ## Installation
 
-Install the skill in its own directory under the client's skills root. `SKILL.md` must be directly inside that directory, not one level deeper.
+Copy the skill into its own directory under the client's skills root.
 
-| Mode | Copy into `<skill-directory>/` |
-|---|---|
-| Both backends | Root `SKILL.md`, `ida/`, and `ghidra/` |
-| IDA only | The **contents** of `ida/` |
-| Ghidra only | The **contents** of `ghidra/` |
+| Copy into `<skill-directory>/` |
+|---|
+| `SKILL.md`, `ida/`, `ghidra/` |
 
-The two single-backend installations use the original backend files unchanged. The combined installation uses the root dispatcher to select one backend at runtime.
+The root `SKILL.md` is a dispatcher — it asks the user to specify which backend to use and follows that backend's instructions. Both `ida/` and `ghidra/` ship together; the dispatcher uses only one at runtime.
 
 ### Installing through an agent
 
 Give your agent this prompt; no local clone is required:
 
 ```text
-Install the skill from https://github.com/MetaMikuAI/il2cpp-to-csharp-skill. Before making changes, ask me to choose IDA only, Ghidra only, or both backends. Then detect this client's skills root and install the selected version as one skill in its own directory. For both backends, use the repository root dispatcher (`SKILL.md`, `ida/`, and `ghidra/`). For a single backend, use the contents of that backend directory as the skill root. Do not add an extra repository or backend directory level: `SKILL.md` must be directly inside the installed skill directory. If the destination already exists, inspect it and ask before replacing or merging anything. Verify the final layout and frontmatter, safely remove only the temporary checkout, and tell me whether a restart or new session is needed.
+Install the skill from https://github.com/MetaMikuAI/il2cpp-to-csharp-skill. Clone the repo directly into this client's skills root as a directory named `il2cpp-to-csharp`. If the destination already exists, inspect it and ask before replacing or merging. Verify the final layout and tell me whether a restart or new session is needed.
 ```
 
 ## Preparation
@@ -50,19 +48,14 @@ Install the skill from https://github.com/MetaMikuAI/il2cpp-to-csharp-skill. Bef
 
 ## Usage
 
-Install or copy this folder as a skill named `il2cpp-to-csharp`, then ask the agent to restore one function at a time:
+Install this skill as `il2cpp-to-csharp`, then ask the agent to restore one function at a time:
 
 ```text
-Use $il2cpp-to-csharp to restore 0x180000000.
-IDA Pro MCP is ready. The dnSpy-exported stub project from DummyDll/Assembly-CSharp.dll is at C:\path\to\DummyDllExport, and stringliteral.json is at C:\path\to\stringliteral.json.
+Use $il2cpp-to-csharp to restore <address or name>.
+<IDA or Ghidra> is ready. stringliteral.json is at <path>. The DummyDll stub project is at <path>.
 ```
 
-Ghidra backend prompt example:
-
-```text
-Use $il2cpp-to-csharp to restore rva:0x123456.
-Ghidra is ready. Project at /path/to/ghidra-projects/game, program UnityFramework, stringliteral.json at /path/to/stringliteral.json.
-```
+The address can be a VA (`0x180000000`), an RVA (`rva:0x123456`), or a function name. For the Ghidra backend, also include the project location, project name, and program name.
 
 ## Example
 
@@ -698,15 +691,16 @@ All names and addresses above are example placeholders, matching the skill's con
 
 ```
 SKILL.md               Dispatcher: backend selection + shared rules (start here)
-ida/                   IDA backend (original skill, unmodified)
-  SKILL.md             IDA workflow: ida-usage.md, ida-quirks.md, strings.md,
-                       helpers.md, compiler-patterns.md, scripts/
-ghidra/                Ghidra backend (custom skill)
-  SKILL.md             Ghidra workflow: ghidra-setup.md, ghidra-query.md,
+scripts/               Shared tools: lookup_strings.py, field_offset.py, query_script_json.py
+ida/                   IDA backend
+  workflow.md          IDA workflow: ida-usage.md, ida-quirks.md, strings.md,
+                       helpers.md, compiler-patterns.md
+ghidra/                Ghidra backend
+  workflow.md          Ghidra workflow: ghidra-setup.md, ghidra-query.md,
                        ghidra-quirks.md, strings.md, helpers.md,
                        string-formatting.md, lambdas-closures.md, linq-generics.md,
                        coroutines.md, async.md, runtime-exceptions.md,
                        runtime-memory.md, scripts/, agents/
 ```
 
-Each backend's `scripts/` tree is self-contained; run its scripts from within that backend's directory so relative references stay valid.
+Run shared scripts from the root `scripts/` directory. Ghidra-specific scripts live under `ghidra/scripts/`; run them from within `ghidra/`.

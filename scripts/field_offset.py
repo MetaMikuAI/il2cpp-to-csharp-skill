@@ -3,7 +3,7 @@
 Compute IL2CPP object/Fields offsets from noisy decompiler pointer expressions.
 
 This script only performs offset arithmetic. Resolve the final field name with
-Ghidra Data Type Manager or the dumped C# [FieldOffset] data.
+the decompiler's struct/type inspection or the dumped C# [FieldOffset] data.
 """
 
 from __future__ import annotations

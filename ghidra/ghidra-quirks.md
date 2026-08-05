@@ -155,8 +155,8 @@ Fields offset = 0x28c - 0x10 = 0x27c
 Use:
 
 ```bash
-python scripts/field_offset.py --object-size 0x10 --index 0x28 --member monitor --byte-offset 4
-python scripts/field_offset.py --object-offset 0x28c
+python ../scripts/field_offset.py --object-size 0x10 --index 0x28 --member monitor --byte-offset 4
+python ../scripts/field_offset.py --object-offset 0x28c
 ```
 
 Resolve the resulting offset in Data Type Manager, `DummyDll`, or `dump.cs`. The helper performs arithmetic only.

@@ -239,11 +239,11 @@ These `[reg+offset]` values are object offsets. Subtract `0x10`, then compare wi
 
 ### Helper Script
 
-Use `scripts/field_offset.py` for arithmetic checks:
+Use `../scripts/field_offset.py` for arithmetic checks:
 
 ```bash
-python scripts/field_offset.py --object-size 0x10 --index 0x28 --member monitor --byte-offset 4
-python scripts/field_offset.py --object-offset 0x34
+python ../scripts/field_offset.py --object-size 0x10 --index 0x28 --member monitor --byte-offset 4
+python ../scripts/field_offset.py --object-offset 0x34
 ```
 
 The script only computes offsets. It does not query IDA and does not decide field names. Field names must come from `analyze_struct_detailed(Type_Fields)` or Il2CppDumper stubs.

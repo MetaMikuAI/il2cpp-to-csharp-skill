@@ -28,23 +28,23 @@ reverse-engineering audits, such as finding API routes or protocol keys.
 
 ### 2.1 Preferred: Use the Lookup Script
 
-This skill includes `scripts/lookup_strings.py`. The user must provide the path to
+This skill includes `../scripts/lookup_strings.py`. The user must provide the path to
 Il2CppDumper's `stringliteral.json`; the script intentionally has no project-specific default path.
 
 Common usage:
 
 ```bash
-python scripts/lookup_strings.py --json-path /path/to/stringliteral.json StringLiteral_8179
-python scripts/lookup_strings.py --json-path /path/to/stringliteral.json 8179 17614
-python scripts/lookup_strings.py --json-path /path/to/stringliteral.json --rva 0x4222200
-python scripts/lookup_strings.py --json-path /path/to/stringliteral.json --base 0x180000000 --va 0x184222200
+python ../scripts/lookup_strings.py --json-path /path/to/stringliteral.json StringLiteral_8179
+python ../scripts/lookup_strings.py --json-path /path/to/stringliteral.json 8179 17614
+python ../scripts/lookup_strings.py --json-path /path/to/stringliteral.json --rva 0x4222200
+python ../scripts/lookup_strings.py --json-path /path/to/stringliteral.json --base 0x180000000 --va 0x184222200
 ```
 
 Environment variables can reduce repeated arguments:
 
 ```bash
 IL2CPP_STRINGLITERAL_JSON=/path/to/stringliteral.json \
-python scripts/lookup_strings.py StringLiteral_8179
+python ../scripts/lookup_strings.py StringLiteral_8179
 ```
 
 PowerShell:
@@ -57,7 +57,7 @@ python scripts\lookup_strings.py StringLiteral_8179
 Batch extraction from decompiler text:
 
 ```bash
-python scripts/lookup_strings.py --json-path /path/to/stringliteral.json --from-file decompile.txt
+python ../scripts/lookup_strings.py --json-path /path/to/stringliteral.json --from-file decompile.txt
 ```
 
 ### 2.2 Audit-only: Search JSON, Then Return to IDA
@@ -88,7 +88,7 @@ use the RVA path through IDA MCP:
 | 1 | `list_globals_filter("StringLiteral_N")` | Search by id to locate the global VA, such as `0x184222200` |
 | 2 | `get_metadata` | Get image base, such as `0x180000000` |
 | 3 | Calculate RVA | `RVA = VA - base`, such as `0x4222200` |
-| 4 | `scripts/lookup_strings.py --rva` | Query the user-provided JSON by `"address"` |
+| 4 | `../scripts/lookup_strings.py --rva` | Query the user-provided JSON by `"address"` |
 
 ### 2.4 `stringliteral.json` Format
 
@@ -114,7 +114,7 @@ For `StringLiteral_8179`:
 list_globals_filter("StringLiteral_8179") -> VA 0x184222200
 get_metadata                              -> base 0x180000000
 RVA = 0x184222200 - 0x180000000           -> 0x4222200
-python scripts/lookup_strings.py --rva 0x4222200
+python ../scripts/lookup_strings.py --rva 0x4222200
                                           -> "Game Asset Loading: Load IzakayaMusicPackage"
 ```
 

@@ -77,7 +77,7 @@ Analyze one function at a time. If the user gives multiple VAs, process them one
 
 ## String Literal Resolution
 
-See [strings.md](strings.md). For normal C# source restoration, do not search for strings as an entry point; only resolve `StringLiteral_N` values that already appear in the current decompile. Prefer `scripts/lookup_strings.py` against the user-provided `stringliteral.json`. **Never invent string contents from context.**
+See [strings.md](strings.md). For normal C# source restoration, do not search for strings as an entry point; only resolve `StringLiteral_N` values that already appear in the current decompile. Prefer `../scripts/lookup_strings.py` against the user-provided `stringliteral.json`. **Never invent string contents from context.**
 
 String content search is an audit-only technique. Common case: traffic capture reveals part of an API route, and you need to locate the client logic for that route. Search the user-provided `stringliteral.json` directly, then use the matched RVA/address to locate the exact IDA global/xref and continue with targeted decompile. Do not use IDA string search.
 
@@ -192,7 +192,7 @@ Pure field getter assembly shape: `mov rax, [rcx+XX]` / `mov eax, [rcx+XX]` foll
 
 If a getter resolves to a folded shared body, restore it as a standard auto-property. Do not preserve an incorrect constant-return stub.
 
-IDA pseudo-C expressions such as `BYTE4(Instance[40].monitor)`, `LOBYTE(instance[1].klass)`, or `*(_OWORD *)&instance[2].fields.X` are usually field-offset noise, not array access. When such expressions affect business logic, first use `scripts/field_offset.py` to compute object and Fields offsets. Use assembly only as a single-offset local check if needed, then confirm the real field name with `*_Fields` or `[FieldOffset]`. See [ida-quirks.md](ida-quirks.md).
+IDA pseudo-C expressions such as `BYTE4(Instance[40].monitor)`, `LOBYTE(instance[1].klass)`, or `*(_OWORD *)&instance[2].fields.X` are usually field-offset noise, not array access. When such expressions affect business logic, first use `../scripts/field_offset.py` to compute object and Fields offsets. Use assembly only as a single-offset local check if needed, then confirm the real field name with `*_Fields` or `[FieldOffset]`. See [ida-quirks.md](ida-quirks.md).
 
 ### Auto-Property Restoration Style
 
@@ -278,7 +278,7 @@ IDA MCP tool rules, see [ida-usage.md](ida-usage.md):
 - [helpers.md](helpers.md) - IL2CPP runtime helper catalog: decompile signatures, call patterns, recognition points, and C# treatment.
 - [ida-usage.md](ida-usage.md) - IDA MCP usage manual: prohibited tools, recommended alternatives, search strategies, timeout handling, and quick reference.
 - [strings.md](strings.md) - String literal handling: `StringLiteral_N` resolution, RVA calculation, `stringliteral.json` lookup, concatenation / formatting translation, and failure handling.
-- [scripts/lookup_strings.py](scripts/lookup_strings.py) - Standard-library Python tool for resolving `StringLiteral_N`, RVA, or VA values against user-provided `stringliteral.json`.
-- [scripts/field_offset.py](scripts/field_offset.py) - Standard-library Python tool for converting IDA pseudo-C noise such as `BYTE4(Instance[40].monitor)` into object and Fields offsets.
+- [../scripts/lookup_strings.py](../scripts/lookup_strings.py) - Standard-library Python tool for resolving `StringLiteral_N`, RVA, or VA values against user-provided `stringliteral.json`.
+- [../scripts/field_offset.py](../scripts/field_offset.py) - Standard-library Python tool for converting IDA pseudo-C noise such as `BYTE4(Instance[40].monitor)` into object and Fields offsets.
 - [compiler-patterns.md](compiler-patterns.md) - Compiler-generated pattern recovery: lambdas, DisplayClass closures, generic methods, LINQ chains, named local functions, coroutine / iterator / async state machines.
 - [ida-quirks.md](ida-quirks.md) - IDA / Il2CppDumper structural quirks: Color32 explicit-layout imported as 8 bytes, generic base offset drift, pseudo-array field-offset noise, async MoveNext jump decoding.
