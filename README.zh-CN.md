@@ -11,7 +11,7 @@
 
 它不是一键反编译器，而是帮助 agent 分析用户给出的 VA 或函数名，并在恢复 C# 时保留字符串、switch 分支、lambda、LINQ、async/coroutine 状态机和 IL2CPP 特有噪音。
 
-**后端选择：** 根目录 [`SKILL.md`](SKILL.md) 是一个精简分发器：它会询问用户指定使用哪个后端，然后完全遵循该后端自己的 `workflow.md`。两个后端互不混用指令，因此任一工作流都不会被稀释。
+**后端选择：** 根目录 [`SKILL.md`](SKILL.md) 负责路由。任务模式下它会询问用户指定使用哪个后端，然后完全遵循该后端自己的 `workflow.md`；两个后端互不混用指令，因此任一工作流都不会被稀释。SKILL.md 里还有一张文档触发表，直接链接两个后端的全部文档；“仅作参考”的提问（如“lambda 怎么还原？”）无需先选后端，可直接读对应文档。
 
 输出质量取决于所使用的 AI 模型能力和可用上下文。恢复代码仅供参考，应结合反编译输出、DummyDll stub 和实际运行行为进行人工核对。
 
@@ -29,7 +29,7 @@
 |---|
 | `SKILL.md`、`ida/`、`ghidra/` |
 
-根目录的 `SKILL.md` 是一个分发器——它会询问用户指定使用哪个后端，并遵循该后端的指令。`ida/` 和 `ghidra/` 两个目录一起提供；分发器在运行时只使用其中一个。
+根目录的 `SKILL.md` 负责任务路由——它会询问用户指定使用哪个后端，并遵循该后端的指令。`ida/` 和 `ghidra/` 两个目录一起提供；一次任务在运行时只使用其中一个后端，参考型提问则可以直接查阅任一后端的文档。
 
 ### 通过 agent 安装
 
@@ -690,7 +690,7 @@ private async UniTaskVoid OverrideSave(int index)
 ## 仓库结构
 
 ```
-SKILL.md               分发器：后端选择 + 共享规则（从这里开始）
+SKILL.md               路由器：模式选择 + 共享规则 + 文档触发表（从这里开始）
 scripts/               共享工具：lookup_strings.py、field_offset.py、query_script_json.py
 ida/                   IDA 后端
   workflow.md          IDA 工作流：ida-usage.md、ida-quirks.md、strings.md、

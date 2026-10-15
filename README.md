@@ -11,7 +11,7 @@ A skill for restoring readable C# from Unity IL2CPP binaries. It ships **two ind
 
 This is not a one-click decompiler. It helps an agent analyze user-provided VAs or function names and reconstruct C# while preserving strings, switch branches, lambdas, LINQ, async/coroutine state machines, and IL2CPP-specific quirks.
 
-**Backend selection:** the root [`SKILL.md`](SKILL.md) is a thin dispatcher. It asks the user to specify which backend to use, then follows that backend's `workflow.md`. The two backends never mix instructions, so neither workflow is diluted.
+**Backend selection:** the root [`SKILL.md`](SKILL.md) routes every request. In task mode it asks the user to specify which backend to use, then follows that backend's `workflow.md`; the two backends never mix instructions, so neither workflow is diluted. It also carries a doc trigger table that links every backend doc directly, so consult-style questions ("how are lambdas restored?") can read the relevant doc without picking a backend first.
 
 Output quality depends on the AI model and the available context. Restored code is for reference only and should be manually reviewed against the decompiler output, DummyDll stubs, and runtime behavior.
 
@@ -29,7 +29,7 @@ Copy the skill into its own directory under the client's skills root.
 |---|
 | `SKILL.md`, `ida/`, `ghidra/` |
 
-The root `SKILL.md` is a dispatcher — it asks the user to specify which backend to use and follows that backend's instructions. Both `ida/` and `ghidra/` ship together; the dispatcher uses only one at runtime.
+The root `SKILL.md` routes the task — it asks the user to specify which backend to use and follows that backend's instructions. Both `ida/` and `ghidra/` ship together; a task uses only one at runtime, while consult-style questions can read either backend's docs directly.
 
 ### Installing through an agent
 
@@ -690,7 +690,7 @@ All names and addresses above are example placeholders, matching the skill's con
 ## Repository Layout
 
 ```
-SKILL.md               Dispatcher: backend selection + shared rules (start here)
+SKILL.md               Router: mode selection, shared rules, doc trigger table (start here)
 scripts/               Shared tools: lookup_strings.py, field_offset.py, query_script_json.py
 ida/                   IDA backend
   workflow.md          IDA workflow: ida-usage.md, ida-quirks.md, strings.md,
